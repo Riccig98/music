@@ -4,18 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Chord Ear Trainer</title>
-<link rel="manifest" href="./manifest.webmanifest">
-<link rel="stylesheet" href="./styles.css?v=20">
+<link rel="manifest" href="./manifest.json">
+<link rel="stylesheet" href="./styles.css?v=21">
 <meta name="theme-color" content="#0b0e13">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
 <script>
-window.__pwaInstallPrompt = null;
-window.addEventListener("beforeinstallprompt", function(event){
+window.__installPrompt = null;
+window.addEventListener("beforeinstallprompt", function (event) {
   event.preventDefault();
-  window.__pwaInstallPrompt = event;
+  window.__installPrompt = event;
+  window.dispatchEvent(new Event("pwa-install-ready"));
 });
 </script>
 </head>
@@ -247,6 +248,6 @@ window.addEventListener("beforeinstallprompt", function(event){
     </div>
   </section>
 </main>
-<script type="module" src="./app.js?v=20"></script>
+<script type="module" src="./app.js?v=21"></script>
 </body>
 </html>
