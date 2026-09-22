@@ -2,9 +2,7 @@ import {
   migrateLegacy,
   addExercise,
   getAllExercises,
-  clearExercises,
-  exportBackup,
-  importBackup
+  clearExercises
 } from "./db.js";
 
 const NAMES=["Do","Do♯/Re♭","Re","Re♯/Mi♭","Mi","Fa","Fa♯/Sol♭","Sol","Sol♯/La♭","La","La♯/Si♭","Si"];
@@ -79,6 +77,82 @@ let historyCache=[];
 let ctx=null;
 let master=null;
 let lastSignature="";
+
+const PIANO_ANCHORS=[
+  {midi:44,file:"Gs2.ogg"},
+  {midi:48,file:"C3.ogg"},
+  {midi:55,file:"G3.ogg"},
+  {midi:60,file:"C4.ogg"},
+  {midi:67,file:"G4.ogg"},
+  {midi:72,file:"C5.ogg"},
+  {midi:79,file:"G5.ogg"},
+  {midi:84,file:"C6.ogg"}
+];
+const pianoSamples=new Map();
+let pianoLoadPromise=null;
+
+function bufferRms(buffer){
+  let sum=0,count=0;
+  for(let ch=0;ch<buffer.numberOfChannels;ch++){
+    const data=buffer.getChannelData(ch);
+    for(let i=0;i<data.length;i+=16){
+      const v=data[i];
+      sum+=v*v;
+      count++;
+    }
+  }
+  return count?Math.sqrt(sum/count):.1;
+}
+
+function loadPianoSamples(){
+  if(pianoLoadPromise)return pianoLoadPromise;
+  pianoLoadPromise=(async()=>{
+    ensureAudio();
+    await Promise.all(PIANO_ANCHORS.map(async anchor=>{
+      try{
+        const res=await fetch(`./samples/piano/${anchor.file}`,{cache:"force-cache"});
+        if(!res.ok)throw new Error("sample");
+        const raw=await res.arrayBuffer();
+        const decoded=await ctx.decodeAudioData(raw.slice(0));
+        const rms=bufferRms(decoded);
+        const norm=Math.max(.5,Math.min(2.0,.115/Math.max(rms,.025)));
+        pianoSamples.set(anchor.midi,{buffer:decoded,norm});
+      }catch(_){}
+    }));
+    return pianoSamples.size;
+  })();
+  return pianoLoadPromise;
+}
+
+function nearestPianoAnchor(midi){
+  return PIANO_ANCHORS.reduce((best,a)=>Math.abs(a.midi-midi)<Math.abs(best.midi-midi)?a:best,PIANO_ANCHORS[0]);
+}
+
+function playSampledPiano(midi,when=0,solo=false){
+  ensureAudio();
+  const anchor=nearestPianoAnchor(midi);
+  const sample=pianoSamples.get(anchor.midi);
+  if(!sample){
+    loadPianoSamples();
+    playPiano(midi,when,solo?1.05:1.7,.195*(solo?1.05:1));
+    return;
+  }
+  const t=ctx.currentTime+when;
+  const src=ctx.createBufferSource();
+  const g=ctx.createGain();
+  src.buffer=sample.buffer;
+  src.playbackRate.setValueAtTime(Math.pow(2,(midi-anchor.midi)/12),t);
+  const level=(solo?.62:.36)*sample.norm*loudnessComp(midi);
+  g.gain.setValueAtTime(.0001,t);
+  g.gain.exponentialRampToValueAtTime(Math.max(.001,level),t+.008);
+  const audible=Math.min(2.6,sample.buffer.duration/src.playbackRate.value);
+  g.gain.setValueAtTime(Math.max(.001,level*.92),t+Math.min(.16,audible*.15));
+  g.gain.exponentialRampToValueAtTime(.0001,t+Math.max(.35,audible-.04));
+  src.connect(g);
+  g.connect(ctx._comp);
+  src.start(t);
+  src.stop(t+audible);
+}
 
 function loadSettings(){
   registerPreset.value=localStorage.getItem("cet-register")||"speaker";
@@ -204,7 +278,7 @@ function playMidi(midi,when=0,solo=false){
   const g=(solo?1.1:1)*loudnessComp(midi);
   if(timbre.value==="epiano")playEPiano(midi,when,solo?1.1:1.6,.18*g);
   else if(timbre.value==="organ")playOrgan(midi,when,solo?1:1.5,.108*g);
-  else playPiano(midi,when,solo?1.05:1.7,.195*g);
+  else playSampledPiano(midi,when,solo);
 }
 function registerBounds(){
   if(registerPreset.value==="full")return{base:43,min:43,max:88,key:48};
@@ -657,38 +731,27 @@ function drawConfusions(canvas,data){
   }
 }
 
-/* ---------- Backup ---------- */
-$("exportHistory").addEventListener("click",async()=>{
-  const data=await exportBackup();
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=url;a.download=`chord-ear-trainer-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-});
-$("importHistory").addEventListener("click",()=>$("importFile").click());
-$("importFile").addEventListener("change",async e=>{
-  const file=e.target.files?.[0];if(!file)return;
-  try{
-    const data=JSON.parse(await file.text());
-    if(!confirm("Importare questo backup sostituendo lo storico presente?"))return;
-    await importBackup(data);historyCache=await getAllExercises();renderHistory();
-    alert("Backup importato.");
-  }catch(err){alert("Backup non valido.");}
-  e.target.value="";
-});
+/* ---------- Local history ---------- */
 $("clearHistory").addEventListener("click",async()=>{
-  if(confirm("Vuoi cancellare tutto lo storico? Questa operazione non si può annullare.")){
+  if(confirm("Vuoi cancellare tutto lo storico locale? Questa operazione non si può annullare.")){
     await clearExercises();historyCache=[];renderHistory();
   }
 });
 
 /* ---------- PWA / updates ---------- */
 async function setupPWA(){
-  if("serviceWorker" in navigator&&location.protocol!=="file:"){
+  const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+  const isNative=()=>location.hostname==="localhost"||location.protocol==="capacitor:";
+
+  let registration=null;
+  let deferredInstallPrompt=null;
+
+  if("serviceWorker" in navigator&&location.protocol==="https:"&&!isNative()){
     try{
-      const reg=await navigator.serviceWorker.register("./sw.js");
-      reg.addEventListener("updatefound",()=>{
-        const worker=reg.installing;
+      registration=await navigator.serviceWorker.register("./sw.js",{scope:"./"});
+      await navigator.serviceWorker.ready;
+      registration.addEventListener("updatefound",()=>{
+        const worker=registration.installing;
         if(!worker)return;
         worker.addEventListener("statechange",()=>{
           if(worker.state==="installed"&&navigator.serviceWorker.controller)$("updateBanner").hidden=false;
@@ -697,21 +760,60 @@ async function setupPWA(){
     }catch(_){}
   }
 
-  let deferredInstallPrompt=null;
-  const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
-  if(!isStandalone()){installBtn.hidden=false;installBtn.textContent="Installa"}
-  window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;if(!isStandalone())installBtn.hidden=false});
+  if(isNative()||isStandalone()){
+    installBtn.hidden=true;
+  }else{
+    installBtn.hidden=false;
+    installBtn.textContent="Installa";
+  }
+
+  window.addEventListener("beforeinstallprompt",e=>{
+    e.preventDefault();
+    deferredInstallPrompt=e;
+    if(!isStandalone()&&!isNative())installBtn.hidden=false;
+  });
+
   installBtn.addEventListener("click",async()=>{
-    if(isStandalone()){installBtn.hidden=true;return}
+    if(isStandalone()||isNative()){
+      installBtn.hidden=true;
+      return;
+    }
+
     if(deferredInstallPrompt){
       deferredInstallPrompt.prompt();
-      try{const choice=await deferredInstallPrompt.userChoice;if(choice?.outcome==="accepted")installBtn.hidden=true}catch(_){}
-      deferredInstallPrompt=null;return;
+      try{
+        const choice=await deferredInstallPrompt.userChoice;
+        if(choice?.outcome==="accepted")installBtn.hidden=true;
+      }catch(_){}
+      deferredInstallPrompt=null;
+      return;
     }
-    alert("Se Chrome non mostra ancora il prompt: menu ⋮ → Aggiungi alla schermata Home / Installa app.");
+
+    let manifestOK=false;
+    try{
+      const m=await fetch("./manifest.webmanifest",{cache:"no-store"});
+      manifestOK=m.ok;
+    }catch(_){}
+
+    const swSupported="serviceWorker" in navigator;
+    const swReady=!!registration;
+    const controlled=!!navigator.serviceWorker?.controller;
+    const https=location.protocol==="https:";
+
+    alert(
+      "Chrome non ha ancora fornito il prompt di installazione.\n\n"+
+      `HTTPS: ${https?"OK":"NO"}\n`+
+      `Manifest: ${manifestOK?"OK":"NO"}\n`+
+      `Service worker: ${swSupported&&swReady?"OK":"NO"}\n`+
+      `Pagina controllata offline: ${controlled?"OK":"non ancora"}\n\n`+
+      "Apri il menu ⋮ di Chrome e scegli “Aggiungi alla schermata Home” o “Installa app”. Se compare solo la prima voce, mandami uno screenshot di questo messaggio e del menu Chrome."
+    );
   });
-  window.addEventListener("appinstalled",()=>{installBtn.hidden=true;deferredInstallPrompt=null});
-  if(isStandalone())installBtn.hidden=true;
+
+  window.addEventListener("appinstalled",()=>{
+    installBtn.hidden=true;
+    deferredInstallPrompt=null;
+  });
 }
 $("reloadApp").addEventListener("click",()=>location.reload());
 
@@ -721,5 +823,6 @@ async function init(){
   loadSettings();
   refreshDetailFilter();
   await setupPWA();
+  loadPianoSamples();
 }
 init();
