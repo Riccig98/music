@@ -382,6 +382,62 @@ function playMidi(midi,when=0,solo=false){
   else if(timbre.value==="organ")playOrgan(midi,when,solo?1:1.5,.108*g);
   else playPiano(midi,when,solo?1.05:1.7,.195*g);
 }
+function startSustainMidi(midi){
+  ensureAudio();
+  const t=ctx.currentTime;
+  const voices=[];
+
+  const addVoice=(osc,gainNode,level,extraStop=[])=>{
+    gainNode.gain.setValueAtTime(.0001,t);
+    gainNode.gain.exponentialRampToValueAtTime(Math.max(.0002,level),t+.09);
+    connectVoice(osc,gainNode);
+    osc.start(t);
+    voices.push({osc,gainNode,level,extraStop});
+  };
+
+  const comp=loudnessComp(midi);
+
+  if(timbre.value==="epiano"){
+    const carrier=ctx.createOscillator(),mod=ctx.createOscillator(),mg=ctx.createGain(),amp=ctx.createGain();
+    carrier.type="sine";mod.type="sine";
+    carrier.frequency.setValueAtTime(freq(midi),t);
+    mod.frequency.setValueAtTime(freq(midi)*2,t);
+    mg.gain.setValueAtTime(freq(midi)*.24,t);
+    mod.connect(mg);mg.connect(carrier.frequency);
+    mod.start(t);
+    addVoice(carrier,amp,.075*comp,[mod]);
+  }else if(timbre.value==="organ"){
+    [[1,1],[2,.46],[3,.24],[4,.13]].forEach(([mul,a])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type="sine";
+      o.frequency.setValueAtTime(freq(midi)*mul,t);
+      addVoice(o,g,.045*a*comp);
+    });
+  }else{
+    [[1,1,"triangle"],[2,.20,"sine"],[3,.075,"sine"],[4,.03,"sine"]].forEach(([mul,a,type])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type=type;
+      o.frequency.setValueAtTime(freq(midi)*mul,t);
+      addVoice(o,g,.075*a*comp);
+    });
+  }
+
+  let released=false;
+  return {
+    release(fade=.20){
+      if(released)return;
+      released=true;
+      const now=ctx.currentTime;
+      voices.forEach(({osc,gainNode,level,extraStop})=>{
+        gainNode.gain.cancelScheduledValues(now);
+        gainNode.gain.setValueAtTime(Math.max(.0002,level),now);
+        gainNode.gain.exponentialRampToValueAtTime(.0001,now+fade);
+        try{osc.stop(now+fade+.04)}catch(_){}
+        extraStop.forEach(node=>{try{node.stop(now+fade+.04)}catch(_){}});
+      });
+    }
+  };
+}
 function registerBounds(){
   if(registerPreset.value==="full")return{base:43,min:43,max:88,key:48};
   if(registerPreset.value==="headphones")return{base:50,min:50,max:86,key:55};
@@ -605,6 +661,7 @@ function resetAttemptState(){
   status.textContent="";status.className="status";answer.textContent="";nextBtn.disabled=true;
 }
 function nextChallenge(autoPlay=false){
+  if(typeof stopHeldListen==="function")stopHeldListen();
   const prev=challenge;
   challenge=appMode==="chords"?makeChordChallenge(prev):makeNoteChallenge(prev);
   lastSignature=challenge.signature;
@@ -620,7 +677,57 @@ function playChallenge(userInitiated=true){
   if(!hasPlayed){hasPlayed=true;firstSoundAt=Date.now()}
   challenge.midis.forEach(m=>playMidi(m,0,false));
 }
-playBtn.addEventListener("click",()=>playChallenge(true));
+
+let listenPointerDown=false;
+let sustainTimer=null;
+let sustainVoices=[];
+
+function stopHeldListen(){
+  listenPointerDown=false;
+  if(sustainTimer){
+    clearTimeout(sustainTimer);
+    sustainTimer=null;
+  }
+  sustainVoices.forEach(v=>v.release(.20));
+  sustainVoices=[];
+  playBtn.classList.remove("holding");
+}
+
+playBtn.addEventListener("pointerdown",event=>{
+  if(event.pointerType==="mouse"&&event.button!==0)return;
+  event.preventDefault();
+  if(!challenge)return;
+
+  stopHeldListen();
+  listenPointerDown=true;
+  playBtn.classList.add("holding");
+  try{playBtn.setPointerCapture(event.pointerId)}catch(_){}
+
+  // A normal press always starts with the usual piano/chord sound.
+  playChallenge(true);
+
+  // Only a real long press adds a sustaining layer.
+  sustainTimer=setTimeout(()=>{
+    sustainTimer=null;
+    if(!listenPointerDown||!challenge)return;
+    sustainVoices=challenge.midis.map(m=>startSustainMidi(m));
+  },240);
+});
+
+["pointerup","pointercancel","lostpointercapture"].forEach(type=>{
+  playBtn.addEventListener(type,event=>{
+    if(!listenPointerDown)return;
+    if(type==="pointerup")event.preventDefault();
+    stopHeldListen();
+  });
+});
+
+// Keyboard activation still behaves as a normal tap.
+playBtn.addEventListener("click",event=>{
+  if(event.detail===0)playChallenge(true);
+});
+
+playBtn.addEventListener("contextmenu",event=>event.preventDefault());
 nextBtn.addEventListener("click",()=>nextChallenge(true));
 
 function markFirstResponse(correct){
