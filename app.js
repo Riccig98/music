@@ -128,7 +128,7 @@ function nearestPianoAnchor(midi){
   return PIANO_ANCHORS.reduce((best,a)=>Math.abs(a.midi-midi)<Math.abs(best.midi-midi)?a:best,PIANO_ANCHORS[0]);
 }
 
-function playSampledPiano(midi,when=0,solo=false){
+function playSampledPiano(midi,when=0,solo=false,scale=1){
   ensureAudio();
   const anchor=nearestPianoAnchor(midi);
   const sample=pianoSamples.get(anchor.midi);
@@ -142,7 +142,7 @@ function playSampledPiano(midi,when=0,solo=false){
   const g=ctx.createGain();
   src.buffer=sample.buffer;
   src.playbackRate.setValueAtTime(Math.pow(2,(midi-anchor.midi)/12),t);
-  const level=(solo?.62:.36)*sample.norm*loudnessComp(midi);
+  const level=(solo?.62:.36)*sample.norm*loudnessComp(midi)*scale;
   g.gain.setValueAtTime(.0001,t);
   g.gain.exponentialRampToValueAtTime(Math.max(.001,level),t+.008);
   const audible=Math.min(2.6,sample.buffer.duration/src.playbackRate.value);
@@ -274,11 +274,11 @@ function playOrgan(midi,when=0,dur=1.5,gain=.108){
     connectVoice(o,g);o.start(t);o.stop(t+dur+.04);
   });
 }
-function playMidi(midi,when=0,solo=false){
-  const g=(solo?1.1:1)*loudnessComp(midi);
+function playMidi(midi,when=0,solo=false,scale=1){
+  const g=(solo?1.1:1)*loudnessComp(midi)*scale;
   if(timbre.value==="epiano")playEPiano(midi,when,solo?1.1:1.6,.18*g);
   else if(timbre.value==="organ")playOrgan(midi,when,solo?1:1.5,.108*g);
-  else playSampledPiano(midi,when,solo);
+  else playSampledPiano(midi,when,solo,scale);
 }
 function registerBounds(){
   if(registerPreset.value==="full")return{base:43,min:43,max:88,key:48};
@@ -298,23 +298,34 @@ function bassDistance(a,b){return(!a?.midis?.length||!b?.midis?.length)?99:Math.
 
 function noteWeaknessScores(){
   const exposure=Array(12).fill(0),penalty=Array(12).fill(0);
-  historyCache.forEach(r=>{
+  const rows=historyCache.slice(-400);
+  rows.forEach((r,index)=>{
+    const age=rows.length-1-index;
+    const recency=Math.pow(.985,age);
     (r.targets||[]).forEach(pc=>{
-      exposure[pc]++;
-      if(!r.correctExercise)penalty[pc]+=1;
-      penalty[pc]+=Math.min(r.errors||0,3)*.12;
+      exposure[pc]+=recency;
+      if(!r.correctExercise)penalty[pc]+=recency;
+      penalty[pc]+=recency*Math.min(r.errors||0,3)*.10;
+      if(r.mode==="notes"&&String(r.detail)==="1"&&r.firstAttemptCorrect===false)penalty[pc]+=recency*.28;
     });
   });
-  return exposure.map((n,i)=>n?Math.min(1.5,penalty[i]/n):.35);
+  return exposure.map((n,i)=>Math.min(1.6,(penalty[i]+.35)/(n+1)));
 }
 function chordWeaknessMap(){
   const map=new Map();
-  historyCache.filter(r=>r.mode==="chords"&&r.chordName).forEach(r=>{
+  const rows=historyCache.filter(r=>r.mode==="chords"&&r.chordName).slice(-300);
+  rows.forEach((r,index)=>{
+    const age=rows.length-1-index;
+    const recency=Math.pow(.985,age);
     const x=map.get(r.chordName)||{n:0,p:0};
-    x.n++;x.p+=r.correctExercise?0:1;x.p+=Math.min(r.errors||0,3)*.12;map.set(r.chordName,x);
+    x.n+=recency;
+    x.p+=recency*(r.correctExercise?0:1);
+    x.p+=recency*Math.min(r.errors||0,3)*.10;
+    if(r.firstAttemptCorrect===false)x.p+=recency*.20;
+    map.set(r.chordName,x);
   });
   const out=new Map();
-  map.forEach((v,k)=>out.set(k,v.n?v.p/v.n:.35));
+  map.forEach((v,k)=>out.set(k,Math.min(1.6,(v.p+.35)/(v.n+1))));
   return out;
 }
 function weightedPick(items,weightFn){
@@ -434,7 +445,8 @@ function playChallenge(userInitiated=true){
   ensureAudio();
   if(hasPlayed&&userInitiated)replayCount++;
   if(!hasPlayed){hasPlayed=true;firstSoundAt=Date.now()}
-  challenge.midis.forEach(m=>playMidi(m,0,false));
+  const polyScale=Math.min(1,Math.sqrt(3/Math.max(1,challenge.midis.length)));
+  challenge.midis.forEach(m=>playMidi(m,0,false,polyScale));
 }
 playBtn.addEventListener("click",()=>playChallenge(true));
 nextBtn.addEventListener("click",()=>nextChallenge(true));
