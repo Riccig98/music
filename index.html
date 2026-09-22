@@ -54,9 +54,16 @@
           <div id="trainerTitle" class="mode-title">Accordi</div>
           <div id="trainerSub" class="sub">L’ottava non conta.</div>
         </div>
-        <div class="trainer-head-actions">
-          <button id="favoriteBtn" class="favorite-toggle" type="button" aria-label="Salva questo voicing" title="Salva questo voicing" hidden>☆</button>
-          <button id="settingsBtn" class="options-toggle" type="button" aria-expanded="false">Opzioni</button>
+        <button id="favoriteBtn" class="favorite-toggle" type="button" aria-label="Salva questo voicing" title="Salva questo voicing" hidden>☆ Salva</button>
+      </div>
+
+      <div class="pre-keyboard">
+        <button id="settingsBtn" class="options-toggle" type="button" aria-expanded="false">Opzioni</button>
+
+        <div class="exercise-feedback" aria-live="polite">
+          <div id="status" class="status"></div>
+          <div id="progress" class="progress"></div>
+          <div id="answer" class="answer"></div>
         </div>
       </div>
 
@@ -129,18 +136,6 @@
       </div>
 
       <div class="trainer-main">
-        <div class="primary-actions">
-          <button id="playBtn" class="listen-button" type="button"><span class="action-icon">▶</span><span>Ascolta</span></button>
-
-          <div class="exercise-feedback" aria-live="polite">
-            <div id="status" class="status"></div>
-            <div id="progress" class="progress"></div>
-            <div id="answer" class="answer"></div>
-          </div>
-
-          <button id="nextBtn" class="next-button" type="button" disabled><span>Avanti</span><span class="action-icon">→</span></button>
-        </div>
-
         <div id="keyboardWrap" class="keyboard-wrap">
           <div id="keyboard" class="keyboard" aria-label="Tastiera cromatica">
             <button class="key white" data-pc="0" type="button"><span class="label">Do</span></button>
@@ -169,6 +164,11 @@
             </label>
           </div>
           <button id="confirmChord" class="primary confirm-answer" type="button">Conferma risposta</button>
+        </div>
+
+        <div class="action-dock">
+          <button id="nextBtn" class="next-button" type="button" disabled><span>Avanti</span><span class="action-icon">→</span></button>
+          <button id="playBtn" class="listen-button" type="button"><span class="action-icon">▶</span><span>Ascolta</span></button>
         </div>
       </div>
     </div>
