@@ -49,3 +49,234 @@ main{max-width:1100px;margin:auto;padding-top:max(8px,env(safe-area-inset-top));
   .split-view{grid-template-columns:1fr}
   .identify-panel{min-height:200px}
 }
+
+
+/* v12: trainer focused on Listen -> Keyboard -> Next */
+.trainer-shell{
+  position:relative;
+  border:1px solid var(--line);
+  background:var(--panel);
+  border-radius:16px;
+  padding:10px;
+  overflow:visible;
+}
+.trainer-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-height:42px;
+  margin-bottom:8px;
+}
+.trainer-heading{min-width:0}
+.trainer-heading .mode-title{font-size:20px}
+.trainer-heading .sub{margin-top:2px}
+.options-toggle{
+  min-height:36px;
+  padding:6px 11px;
+  flex:0 0 auto;
+  background:#10161e;
+}
+.options-toggle[aria-expanded="true"]{
+  border-color:var(--accent);
+  background:#152332;
+}
+.options-drawer{
+  position:absolute;
+  z-index:30;
+  top:56px;
+  right:10px;
+  width:min(430px,calc(100% - 20px));
+  max-height:min(72vh,430px);
+  overflow:auto;
+  padding:10px;
+  border:1px solid #3a4655;
+  border-radius:14px;
+  background:#10151c;
+  box-shadow:0 18px 48px #000b;
+}
+.options-drawer[hidden]{display:none!important}
+.option-section{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  padding:9px 0;
+  border-top:1px solid var(--line);
+}
+.option-section:first-child{border-top:0;padding-top:0}
+.option-section:last-child{padding-bottom:0}
+.option-section-title{
+  grid-column:1/-1;
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--muted);
+}
+.option-field{
+  display:grid;
+  gap:4px;
+  min-width:0;
+}
+.option-field>span{
+  font-size:10px;
+  color:var(--muted);
+}
+.option-field select{
+  width:100%;
+  min-width:0;
+  min-height:36px;
+  padding:5px 8px;
+  font-size:12px;
+}
+.option-section .segmented{
+  grid-column:1/-1;
+}
+.option-section .checkline{
+  min-height:34px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:11px;
+}
+.option-section .checkline input{
+  accent-color:var(--accent);
+}
+.trainer-main{
+  display:grid;
+  gap:8px;
+}
+.primary-actions{
+  display:grid;
+  grid-template-columns:minmax(110px,.85fr) minmax(150px,1.25fr) minmax(110px,.85fr);
+  gap:8px;
+  align-items:stretch;
+}
+.listen-button,.next-button{
+  min-height:54px;
+  border-radius:13px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  font-size:15px;
+  font-weight:900;
+  letter-spacing:-.01em;
+}
+.listen-button{
+  border-color:var(--accent);
+  background:#132536;
+}
+.listen-button:active{transform:translateY(1px)}
+.next-button{
+  background:#17231d;
+  border-color:#355f46;
+}
+.next-button:not(:disabled){color:#e9fff1;border-color:var(--good);background:#173123}
+.next-button:disabled{background:#14191f;border-color:var(--line)}
+.action-icon{font-size:17px;line-height:1}
+.exercise-feedback{
+  min-width:0;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:#10151c;
+  padding:7px 10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.exercise-feedback .status{
+  min-height:18px;
+  font-size:13px;
+}
+.exercise-feedback .progress,
+.exercise-feedback .answer{
+  font-size:10px;
+  line-height:1.25;
+}
+.trainer-main .keyboard-wrap{
+  border-radius:12px;
+  overflow:hidden;
+}
+.trainer-main .keyboard{
+  height:clamp(185px,31vw,270px);
+}
+.trainer-main .identify-panel{
+  min-height:clamp(185px,31vw,270px);
+}
+.confirm-answer{min-width:180px}
+#showLabelsRow[hidden]{display:none!important}
+
+@media(max-width:760px) and (orientation:landscape){
+  .trainer-shell{
+    padding:6px;
+    border-radius:12px;
+  }
+  .trainer-head{
+    min-height:32px;
+    margin-bottom:5px;
+  }
+  .trainer-heading .mode-title{font-size:16px}
+  .trainer-heading .sub{display:none}
+  .options-toggle{
+    min-height:30px;
+    padding:4px 8px;
+    font-size:10px;
+  }
+  .options-drawer{
+    top:41px;
+    right:6px;
+    width:min(390px,calc(100% - 12px));
+    max-height:calc(100vh - 56px);
+    padding:8px;
+    border-radius:11px;
+  }
+  .option-section{gap:5px;padding:7px 0}
+  .option-field>span,.option-section-title{font-size:8px}
+  .option-field select{min-height:31px;padding:3px 6px;font-size:10px}
+  .option-section .checkline{min-height:28px;font-size:9px}
+  .segmented button{min-height:30px;font-size:9px}
+  .trainer-main{gap:5px}
+  .primary-actions{
+    grid-template-columns:minmax(95px,.8fr) minmax(135px,1.25fr) minmax(95px,.8fr);
+    gap:5px;
+  }
+  .listen-button,.next-button{
+    min-height:42px;
+    padding:5px 8px;
+    font-size:12px;
+    border-radius:10px;
+  }
+  .action-icon{font-size:14px}
+  .exercise-feedback{
+    padding:4px 7px;
+    border-radius:10px;
+  }
+  .exercise-feedback .status{min-height:15px;font-size:11px}
+  .exercise-feedback .progress,.exercise-feedback .answer{font-size:8px}
+  .trainer-main .keyboard{height:clamp(145px,26vw,195px)}
+  .trainer-main .identify-panel{min-height:clamp(145px,26vw,195px)}
+}
+@media(max-width:620px) and (orientation:portrait){
+  .trainer-shell{padding:8px}
+  .trainer-head{margin-bottom:7px}
+  .primary-actions{
+    grid-template-columns:1fr 1fr;
+  }
+  .exercise-feedback{
+    grid-column:1/-1;
+    grid-row:2;
+    min-height:52px;
+  }
+  .listen-button{grid-column:1}
+  .next-button{grid-column:2}
+  .trainer-main .keyboard{height:clamp(210px,58vw,290px)}
+  .options-drawer{
+    top:56px;
+    right:8px;
+    width:calc(100% - 16px);
+    max-height:70vh;
+  }
+}
