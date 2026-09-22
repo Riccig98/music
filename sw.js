@@ -1,4 +1,4 @@
-const CACHE="chord-ear-trainer-v10";
+const CACHE="chord-ear-trainer-v11";
 const FILES=[
   "./",
   "./index.html",
