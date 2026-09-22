@@ -327,12 +327,34 @@ function loudnessComp(midi){
 }
 function connectVoice(o,g){o.connect(g);g.connect(ctx._comp)}
 function playPiano(midi,when=0,dur=1.7,gain=.195){
-  ensureAudio();const t=ctx.currentTime+when;
-  [[1,1,"triangle"],[2,.24,"sine"],[3,.11,"sine"],[4,.055,"sine"]].forEach(([mul,amp,type])=>{
+  ensureAudio();
+  const t=ctx.currentTime+when;
+  const partials=[
+    [1,1,"triangle",1],
+    [2,.22,"sine",.72],
+    [3,.09,"sine",.56],
+    [4,.04,"sine",.44]
+  ];
+
+  partials.forEach(([mul,amp,type,decay])=>{
     const o=ctx.createOscillator(),g=ctx.createGain();
-    o.type=type;o.frequency.setValueAtTime(freq(midi)*mul,t);
-    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(gain*amp,t+.009);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-    connectVoice(o,g);o.start(t);o.stop(t+dur+.04);
+    const peak=Math.max(.0002,gain*amp);
+    const d1=Math.max(.055,dur*.14*decay);
+    const d2=Math.max(.18,dur*.48*decay);
+    const end=Math.max(d2+.08,dur*decay);
+
+    o.type=type;
+    o.frequency.setValueAtTime(freq(midi)*mul,t);
+
+    g.gain.setValueAtTime(.0001,t);
+    g.gain.exponentialRampToValueAtTime(peak,t+.007);
+    g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak*.30),t+d1);
+    g.gain.exponentialRampToValueAtTime(Math.max(.00012,peak*.065),t+d2);
+    g.gain.exponentialRampToValueAtTime(.0001,t+end);
+
+    connectVoice(o,g);
+    o.start(t);
+    o.stop(t+end+.04);
   });
 }
 function playEPiano(midi,when=0,dur=1.6,gain=.18){
