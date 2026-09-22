@@ -152,10 +152,48 @@
   window.addEventListener("resize",()=>{if(screens.history.classList.contains("active"))renderHistory()});
   $("clearHistory").addEventListener("click",()=>{if(confirm("Vuoi cancellare tutto lo storico? Questa operazione non si può annullare.")){localStorage.removeItem(STORAGE_KEY);renderHistory()}});
 
-  if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  if("serviceWorker" in navigator&&location.protocol!=="file:"){
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  }
+
   let deferredInstallPrompt=null;
-  window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;installBtn.hidden=false});
-  installBtn.addEventListener("click",async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();try{await deferredInstallPrompt.userChoice}catch(_){}deferredInstallPrompt=null;installBtn.hidden=true});
-  window.addEventListener("appinstalled",()=>{installBtn.hidden=true;deferredInstallPrompt=null});
-  if(window.matchMedia("(display-mode: standalone)").matches)installBtn.hidden=true;
+  const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone===true;
+
+  if(!isStandalone()){
+    installBtn.hidden=false;
+    installBtn.textContent="Installa";
+  }
+
+  window.addEventListener("beforeinstallprompt",e=>{
+    e.preventDefault();
+    deferredInstallPrompt=e;
+    if(!isStandalone()){
+      installBtn.hidden=false;
+      installBtn.textContent="Installa";
+    }
+  });
+
+  installBtn.addEventListener("click",async()=>{
+    if(isStandalone()){
+      installBtn.hidden=true;
+      return;
+    }
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      try{
+        const choice=await deferredInstallPrompt.userChoice;
+        if(choice?.outcome==="accepted") installBtn.hidden=true;
+      }catch(_){}
+      deferredInstallPrompt=null;
+      return;
+    }
+    alert("Chrome non ha ancora reso disponibile l’installazione. Usa l’app per almeno 30 secondi, tocca qualche controllo e poi riprova. In alternativa: menu ⋮ di Chrome → Aggiungi alla schermata Home / Installa app.");
+  });
+
+  window.addEventListener("appinstalled",()=>{
+    installBtn.hidden=true;
+    deferredInstallPrompt=null;
+  });
+
+  if(isStandalone()) installBtn.hidden=true;
 })();
