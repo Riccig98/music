@@ -170,13 +170,13 @@ function playSampledPiano(midi,when=0,solo=false,scale=1){
 }
 
 function displayNote(pc){
-  if(notationMode.value==="sharp")return SHARP_displayNote(pc);
-  if(notationMode.value==="flat")return FLAT_displayNote(pc);
-  return displayNote(pc);
+  if(notationMode.value==="sharp")return SHARP_NAMES[pc];
+  if(notationMode.value==="flat")return FLAT_NAMES[pc];
+  return NAMES[pc];
 }
 function shortDisplayNote(pc){
-  if(notationMode.value==="flat")return FLAT_displayNote(pc);
-  return SHARP_displayNote(pc);
+  if(notationMode.value==="flat")return FLAT_NAMES[pc];
+  return SHARP_NAMES[pc];
 }
 function applyNotation(){
   keys.forEach(k=>{
@@ -727,7 +727,7 @@ function drawProblemNotes(canvas,data){
   const rowH=(h-5)/rows.length;
   rows.forEach((x,i)=>{
     const y=i*rowH,bw=(w-65)*(x.rate/max);
-    c.fillStyle="#94a3b8";c.font="9px system-ui";c.textAlign="right";c.fillText(SHORT_displayNote(x.pc),42,y+rowH*.65);
+    c.fillStyle="#94a3b8";c.font="9px system-ui";c.textAlign="right";c.fillText(shortDisplayNote(x.pc),42,y+rowH*.65);
     c.fillStyle="#253342";c.fillRect(50,y+rowH*.22,w-58,rowH*.46);
     c.fillStyle="#ef6464";c.fillRect(50,y+rowH*.22,bw,rowH*.46);
     c.fillStyle="#f5f7fb";c.textAlign="left";c.fillText(Math.round(x.rate*100)+"%",54+Math.min(bw,w-78),y+rowH*.65);
