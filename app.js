@@ -6,7 +6,9 @@ import {
 } from "./db.js";
 
 const NAMES=["Do","Do♯/Re♭","Re","Re♯/Mi♭","Mi","Fa","Fa♯/Sol♭","Sol","Sol♯/La♭","La","La♯/Si♭","Si"];
-const SHORT_NAMES=["Do","Do♯","Re","Re♯","Mi","Fa","Fa♯","Sol","Sol♯","La","La♯","Si"];
+const SHARP_NAMES=["Do","Do♯","Re","Re♯","Mi","Fa","Fa♯","Sol","Sol♯","La","La♯","Si"];
+const FLAT_NAMES=["Do","Re♭","Re","Mi♭","Mi","Fa","Sol♭","Sol","La♭","La","Si♭","Si"];
+const SHORT_NAMES=SHARP_NAMES;
 
 const BANK={
   easy:[
@@ -47,6 +49,7 @@ const nextBtn=$("nextBtn");
 const settingsBtn=$("settingsBtn");
 const settingsPanel=$("settingsPanel");
 const registerPreset=$("registerPreset");
+const notationMode=$("notationMode");
 const showLabels=$("showLabels");
 const antiReference=$("antiReference");
 const keyboard=$("keyboard");
@@ -166,19 +169,39 @@ function playSampledPiano(midi,when=0,solo=false,scale=1){
   src.stop(t+audible);
 }
 
+function displayNote(pc){
+  if(notationMode.value==="sharp")return SHARP_displayNote(pc);
+  if(notationMode.value==="flat")return FLAT_displayNote(pc);
+  return displayNote(pc);
+}
+function shortDisplayNote(pc){
+  if(notationMode.value==="flat")return FLAT_displayNote(pc);
+  return SHARP_displayNote(pc);
+}
+function applyNotation(){
+  keys.forEach(k=>{
+    const pc=Number(k.dataset.pc);
+    const label=k.querySelector(".label");
+    if(label)label.textContent=displayNote(pc);
+  });
+  if(appMode==="chords"&&chordTask==="identify")refreshQualityOptions();
+}
 function loadSettings(){
   registerPreset.value=localStorage.getItem("cet-register")||"speaker";
+  notationMode.value=localStorage.getItem("cet-notation")||"both";
   showLabels.checked=localStorage.getItem("cet-labels")!=="0";
   antiReference.checked=localStorage.getItem("cet-antiref")!=="0";
   applyLabelSetting();
+  applyNotation();
 }
 function saveSettings(){
   localStorage.setItem("cet-register",registerPreset.value);
+  localStorage.setItem("cet-notation",notationMode.value);
   localStorage.setItem("cet-labels",showLabels.checked?"1":"0");
   localStorage.setItem("cet-antiref",antiReference.checked?"1":"0");
 }
 function applyLabelSetting(){keyboard.classList.toggle("hide-labels",!showLabels.checked)}
-[registerPreset,showLabels,antiReference].forEach(el=>el.addEventListener("change",()=>{saveSettings();applyLabelSetting()}));
+[registerPreset,notationMode,showLabels,antiReference].forEach(el=>el.addEventListener("change",()=>{saveSettings();applyLabelSetting();applyNotation()}));
 settingsBtn.addEventListener("click",()=>settingsPanel.hidden=!settingsPanel.hidden);
 
 function showScreen(name){
@@ -231,7 +254,7 @@ function syncAnswerUI(){
   if(identify)refreshQualityOptions();
 }
 function refreshQualityOptions(){
-  rootAnswer.innerHTML=NAMES.map((n,i)=>`<option value="${i}">${n}</option>`).join("");
+  rootAnswer.innerHTML=Array.from({length:12},(_,i)=>`<option value="${i}">${displayNote(i)}</option>`).join("");
   if(appMode!=="chords")return;
   const names=[...new Set(chordPool(modeOption.value).filter(c=>!c.rootless).map(c=>c.n))];
   qualityAnswer.innerHTML=names.map(n=>`<option value="${n}">${n}</option>`).join("");
@@ -510,9 +533,9 @@ async function saveCompleted(){
 async function finishExercise(){
   status.textContent="Corretto";status.className="status ok";nextBtn.disabled=false;
   if(appMode==="chords"&&chordTask==="identify"){
-    answer.textContent=`${NAMES[challenge.root]} · ${challenge.ch.n}`;
+    answer.textContent=`${displayNote(challenge.root)} · ${challenge.ch.n}`;
   }else{
-    answer.textContent=challenge.pcs.map(pc=>NAMES[pc]).join(" · ");
+    answer.textContent=challenge.pcs.map(pc=>displayNote(pc)).join(" · ");
   }
   await saveCompleted();
 }
@@ -704,7 +727,7 @@ function drawProblemNotes(canvas,data){
   const rowH=(h-5)/rows.length;
   rows.forEach((x,i)=>{
     const y=i*rowH,bw=(w-65)*(x.rate/max);
-    c.fillStyle="#94a3b8";c.font="9px system-ui";c.textAlign="right";c.fillText(SHORT_NAMES[x.pc],42,y+rowH*.65);
+    c.fillStyle="#94a3b8";c.font="9px system-ui";c.textAlign="right";c.fillText(SHORT_displayNote(x.pc),42,y+rowH*.65);
     c.fillStyle="#253342";c.fillRect(50,y+rowH*.22,w-58,rowH*.46);
     c.fillStyle="#ef6464";c.fillRect(50,y+rowH*.22,bw,rowH*.46);
     c.fillStyle="#f5f7fb";c.textAlign="left";c.fillText(Math.round(x.rate*100)+"%",54+Math.min(bw,w-78),y+rowH*.65);
@@ -715,7 +738,7 @@ function renderNoteStats(data){
   $("noteStats").innerHTML='<div class="stat-row head"><div>Nota</div><div>Prove</div><div>Senza errori</div><div>Premuta errata</div></div>'+
     rows.map(x=>{
       const clean=x.seen?Math.round((x.seen-x.failed)/x.seen*100):0;
-      return `<div class="stat-row"><div>${NAMES[x.pc]}</div><div>${x.seen}</div><div class="${clean>=80?"goodnum":clean<60&&x.seen?"badnum":""}">${x.seen?clean+"%":"—"}</div><div>${x.wrongPress}</div></div>`;
+      return `<div class="stat-row"><div>${displayNote(x.pc)}</div><div>${x.seen}</div><div class="${clean>=80?"goodnum":clean<60&&x.seen?"badnum":""}">${x.seen?clean+"%":"—"}</div><div>${x.wrongPress}</div></div>`;
     }).join("");
 }
 function renderChordStats(data){
@@ -744,8 +767,8 @@ function drawConfusions(canvas,data){
   c.font="7px system-ui";c.textAlign="center";
   for(let i=0;i<12;i++){
     c.fillStyle="#94a3b8";
-    c.fillText(SHORT_NAMES[i].replace("♯","#"),padL+i*cell+cell/2,9);
-    c.textAlign="right";c.fillText(SHORT_NAMES[i].replace("♯","#"),padL-3,padT+i*cell+cell*.65);c.textAlign="center";
+    c.fillText(shortDisplayNote(i).replace("♯","#").replace("♭","b"),padL+i*cell+cell/2,9);
+    c.textAlign="right";c.fillText(shortDisplayNote(i).replace("♯","#").replace("♭","b"),padL-3,padT+i*cell+cell*.65);c.textAlign="center";
     for(let j=0;j<12;j++){
       const v=matrix[i][j],alpha=v?(.18+.82*v/max):.035;
       c.fillStyle=`rgba(239,100,100,${alpha})`;
