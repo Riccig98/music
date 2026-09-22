@@ -60,6 +60,18 @@ const progress=$("progress");
 const answer=$("answer");
 const chordTypeWrap=$("chordTypeWrap");
 
+let deferredInstallPrompt=null;
+window.addEventListener("beforeinstallprompt",event=>{
+  event.preventDefault();
+  deferredInstallPrompt=event;
+  installBtn.hidden=false;
+  installBtn.textContent="Installa";
+});
+window.addEventListener("appinstalled",()=>{
+  deferredInstallPrompt=null;
+  installBtn.hidden=true;
+});
+
 let appMode=null;
 let chordTask="notes";
 let challenge=null;
@@ -756,7 +768,6 @@ async function setupPWA(){
   const isNative=()=>location.hostname==="localhost"||location.protocol==="capacitor:";
 
   let registration=null;
-  let deferredInstallPrompt=null;
 
   if("serviceWorker" in navigator&&location.protocol==="https:"&&!isNative()){
     try{
@@ -778,12 +789,6 @@ async function setupPWA(){
     installBtn.hidden=false;
     installBtn.textContent="Installa";
   }
-
-  window.addEventListener("beforeinstallprompt",e=>{
-    e.preventDefault();
-    deferredInstallPrompt=e;
-    if(!isStandalone()&&!isNative())installBtn.hidden=false;
-  });
 
   installBtn.addEventListener("click",async()=>{
     if(isStandalone()||isNative()){
@@ -822,10 +827,6 @@ async function setupPWA(){
     );
   });
 
-  window.addEventListener("appinstalled",()=>{
-    installBtn.hidden=true;
-    deferredInstallPrompt=null;
-  });
 }
 $("reloadApp").addEventListener("click",()=>location.reload());
 
