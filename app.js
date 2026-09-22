@@ -853,12 +853,14 @@ async function setupPWA(){
 }
 $("reloadApp").addEventListener("click",()=>location.reload());
 
+const pwaSetupPromise=setupPWA();
+
 async function init(){
   await migrateLegacy();
   historyCache=await getAllExercises();
   loadSettings();
   refreshDetailFilter();
-  await setupPWA();
   loadPianoSamples();
+  await pwaSetupPromise;
 }
 init();
