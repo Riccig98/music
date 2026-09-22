@@ -1,4 +1,4 @@
-const CACHE="chord-ear-trainer-v11";
+const CACHE="chord-ear-trainer-v12";
 const FILES=[
   "./",
   "./index.html",
@@ -7,15 +7,7 @@ const FILES=[
   "./db.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./samples/piano/Gs2.ogg",
-  "./samples/piano/C3.ogg",
-  "./samples/piano/G3.ogg",
-  "./samples/piano/C4.ogg",
-  "./samples/piano/G4.ogg",
-  "./samples/piano/C5.ogg",
-  "./samples/piano/G5.ogg",
-  "./samples/piano/C6.ogg"
+  "./icons/icon-512.png"
 ];
 
 self.addEventListener("install",event=>{
