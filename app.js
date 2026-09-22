@@ -264,7 +264,7 @@ function openTrainer(mode){
   appMode=mode;
   $("trainerTitle").textContent=mode==="chords"?"Accordi":"Note";
   $("trainerSub").textContent=mode==="chords"?"Ascolta e trova la risposta.":"Ascolta e riconosci le note.";
-  chordTypeWrap.hidden=mode!=="chords";
+  chordTypeWrap.hidden=true;
   modeOptionLabel.textContent=mode==="chords"?"Difficoltà":"Numero di note";
   chordTask="notes";
   syncChordTaskButtons();
@@ -293,11 +293,10 @@ function syncChordTaskButtons(){
   document.querySelectorAll("[data-chord-task]").forEach(btn=>btn.classList.toggle("active",btn.dataset.chordTask===chordTask));
 }
 function syncAnswerUI(){
-  const identify=appMode==="chords"&&chordTask==="identify";
-  keyboardWrap.hidden=identify;
-  identifyPanel.hidden=!identify;
-  showLabelsRow.hidden=identify;
-  if(identify)refreshQualityOptions();
+  chordTask="notes";
+  keyboardWrap.hidden=false;
+  identifyPanel.hidden=true;
+  showLabelsRow.hidden=false;
 }
 function refreshQualityOptions(){
   rootAnswer.innerHTML=Array.from({length:12},(_,i)=>`<option value="${i}">${displayNote(i)}</option>`).join("");
