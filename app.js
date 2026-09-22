@@ -130,10 +130,10 @@ function syncFavoriteButton(){
   favoriteBtn.hidden=!show;
   if(!show)return;
   const saved=isCurrentVoicingFavorite();
-  favoriteBtn.textContent=saved?"★":"☆";
+  favoriteBtn.textContent=saved?"★ Salvato":"☆ Salva";
   favoriteBtn.classList.toggle("saved",saved);
-  favoriteBtn.setAttribute("aria-label",saved?"Rimuovi questo voicing dai preferiti":"Salva questo voicing nei preferiti");
-  favoriteBtn.title=saved?"Rimuovi dai preferiti":"Salva questo voicing";
+  favoriteBtn.setAttribute("aria-label",saved?"Rimuovi questo accordo dai preferiti":"Salva questo accordo nei preferiti");
+  favoriteBtn.title=saved?"Rimuovi dai preferiti":"Salva accordo";
 }
 function toggleCurrentFavorite(){
   if(!challenge||challenge.kind!=="chords")return;
