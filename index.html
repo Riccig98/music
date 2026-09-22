@@ -14,6 +14,11 @@
 </head>
 <body>
 <main>
+  <div id="updateBanner" class="update-banner" hidden>
+    <span>Nuova versione disponibile</span>
+    <button id="reloadApp" type="button">Aggiorna</button>
+  </div>
+
   <div class="topbar">
     <button id="homeBtn" class="iconbtn" type="button" hidden>←</button>
     <div class="brand">Chord Ear Trainer</div>
@@ -24,19 +29,19 @@
   <section id="homeScreen" class="screen active">
     <div class="home-intro">
       <h1>Allenamento uditivo</h1>
-      <p>Scegli cosa allenare. Tutto viene salvato automaticamente.</p>
+      <p>Scegli cosa allenare. Lo storico viene salvato automaticamente.</p>
     </div>
     <div class="home-grid">
       <button class="home-card" data-open="chords" type="button">
-        <div><div class="big">Accordi</div><div class="small">Riconosci tutte le note di accordi semplici, jazz e avanzati.</div></div>
+        <div><div class="big">Accordi</div><div class="small">Trova le note oppure riconosci fondamentale e qualità.</div></div>
         <div class="arrow">→</div>
       </button>
       <button class="home-card" data-open="notes" type="button">
-        <div><div class="big">Note</div><div class="small">Allenati con una nota singola oppure due note insieme.</div></div>
+        <div><div class="big">Note</div><div class="small">Una nota o due note insieme, con allenamento casuale o mirato.</div></div>
         <div class="arrow">→</div>
       </button>
       <button class="home-card" data-open="history" type="button">
-        <div><div class="big">Storico</div><div class="small">Errori, precisione e miglioramento nel tempo.</div></div>
+        <div><div class="big">Storico</div><div class="small">Progressi per data, errori, note deboli e confusioni.</div></div>
         <div class="arrow">→</div>
       </button>
     </div>
@@ -46,9 +51,20 @@
     <div class="panel trainer-grid">
       <div class="side">
         <div id="trainerTitle" class="mode-title">Accordi</div>
-        <div id="trainerSub" class="sub">Trova tutte le note. L’ottava non conta.</div>
+        <div id="trainerSub" class="sub">L’ottava non conta.</div>
+
+        <div id="chordTypeWrap" class="segmented" hidden>
+          <button type="button" data-chord-task="notes" class="active">Note</button>
+          <button type="button" data-chord-task="identify">Che accordo è?</button>
+        </div>
+
         <div class="controls">
-          <select id="modeOption" aria-label="Modalità"></select>
+          <select id="modeOption" aria-label="Difficoltà"></select>
+          <select id="trainingMethod" aria-label="Metodo">
+            <option value="random">Casuale</option>
+            <option value="adaptive">Adattivo</option>
+            <option value="weakness">Debolezze</option>
+          </select>
           <select id="timbre" aria-label="Timbro">
             <option value="piano">Piano</option>
             <option value="epiano">E-Piano</option>
@@ -56,26 +72,55 @@
           </select>
           <button id="playBtn" class="primary" type="button">▶ Ascolta</button>
           <button id="nextBtn" type="button" disabled>Successivo →</button>
+          <button id="settingsBtn" type="button">Impostazioni</button>
         </div>
+
+        <div id="settingsPanel" class="settings-panel" hidden>
+          <label>Registro
+            <select id="registerPreset">
+              <option value="speaker">Speaker telefono</option>
+              <option value="headphones">Cuffie</option>
+              <option value="full">Completo</option>
+            </select>
+          </label>
+          <label class="checkline"><input id="showLabels" type="checkbox" checked> Mostra nomi note</label>
+          <label class="checkline"><input id="antiReference" type="checkbox" checked> Anti-riferimento tra esercizi</label>
+        </div>
+
         <div id="status" class="status" aria-live="polite"></div>
         <div id="progress" class="progress"></div>
         <div id="answer" class="answer"></div>
       </div>
 
-      <div class="keyboard-wrap">
-        <div id="keyboard" class="keyboard" aria-label="Tastiera cromatica">
-          <button class="key white" data-pc="0" type="button"><span class="label">Do</span></button>
-          <button class="key white" data-pc="2" type="button"><span class="label">Re</span></button>
-          <button class="key white" data-pc="4" type="button"><span class="label">Mi</span></button>
-          <button class="key white" data-pc="5" type="button"><span class="label">Fa</span></button>
-          <button class="key white" data-pc="7" type="button"><span class="label">Sol</span></button>
-          <button class="key white" data-pc="9" type="button"><span class="label">La</span></button>
-          <button class="key white" data-pc="11" type="button"><span class="label">Si</span></button>
-          <button class="key black" data-pc="1" type="button" style="left:14.285%"><span class="label">Do♯</span></button>
-          <button class="key black" data-pc="3" type="button" style="left:28.57%"><span class="label">Re♯</span></button>
-          <button class="key black" data-pc="6" type="button" style="left:57.14%"><span class="label">Fa♯</span></button>
-          <button class="key black" data-pc="8" type="button" style="left:71.425%"><span class="label">Sol♯</span></button>
-          <button class="key black" data-pc="10" type="button" style="left:85.71%"><span class="label">La♯</span></button>
+      <div>
+        <div id="keyboardWrap" class="keyboard-wrap">
+          <div id="keyboard" class="keyboard" aria-label="Tastiera cromatica">
+            <button class="key white" data-pc="0" type="button"><span class="label">Do</span></button>
+            <button class="key white" data-pc="2" type="button"><span class="label">Re</span></button>
+            <button class="key white" data-pc="4" type="button"><span class="label">Mi</span></button>
+            <button class="key white" data-pc="5" type="button"><span class="label">Fa</span></button>
+            <button class="key white" data-pc="7" type="button"><span class="label">Sol</span></button>
+            <button class="key white" data-pc="9" type="button"><span class="label">La</span></button>
+            <button class="key white" data-pc="11" type="button"><span class="label">Si</span></button>
+            <button class="key black" data-pc="1" type="button" style="left:14.285%"><span class="label">Do♯</span></button>
+            <button class="key black" data-pc="3" type="button" style="left:28.57%"><span class="label">Re♯</span></button>
+            <button class="key black" data-pc="6" type="button" style="left:57.14%"><span class="label">Fa♯</span></button>
+            <button class="key black" data-pc="8" type="button" style="left:71.425%"><span class="label">Sol♯</span></button>
+            <button class="key black" data-pc="10" type="button" style="left:85.71%"><span class="label">La♯</span></button>
+          </div>
+        </div>
+
+        <div id="identifyPanel" class="identify-panel" hidden>
+          <div class="identify-title">Che accordo hai sentito?</div>
+          <div class="identify-grid">
+            <label>Fondamentale
+              <select id="rootAnswer"></select>
+            </label>
+            <label>Qualità
+              <select id="qualityAnswer"></select>
+            </label>
+          </div>
+          <button id="confirmChord" class="primary" type="button">Conferma</button>
         </div>
       </div>
     </div>
@@ -85,10 +130,10 @@
     <div class="panel">
       <div class="history-filters">
         <select id="periodFilter" aria-label="Periodo">
-          <option value="all">Tutto</option>
           <option value="7">Ultimi 7 giorni</option>
           <option value="30" selected>Ultimi 30 giorni</option>
           <option value="90">Ultimi 90 giorni</option>
+          <option value="all">Tutto</option>
         </select>
         <select id="modeFilter" aria-label="Tipo">
           <option value="all">Tutte le modalità</option>
@@ -98,26 +143,59 @@
         <select id="detailFilter" aria-label="Livello"><option value="all">Tutti i livelli</option></select>
       </div>
 
-      <div class="metrics">
-        <div class="metric"><div id="mExercises" class="v">0</div><div class="l">Esercizi</div></div>
-        <div class="metric"><div id="mAccuracy" class="v">—</div><div class="l">Precisione</div><div id="mTrend" class="trend neutral"></div></div>
-        <div class="metric"><div id="mErrors" class="v">—</div><div class="l">Errori / esercizio</div></div>
-        <div class="metric"><div id="mTime" class="v">—</div><div class="l">Tempo medio</div></div>
+      <div class="history-tabs">
+        <button class="active" data-history-tab="overview">Panoramica</button>
+        <button data-history-tab="notes">Note</button>
+        <button data-history-tab="chords">Accordi</button>
+        <button data-history-tab="confusions">Confusioni</button>
       </div>
 
-      <div class="charts">
-        <div class="chartbox"><div class="chart-title">Andamento della precisione</div><canvas id="trendCanvas"></canvas></div>
-        <div class="chartbox"><div class="chart-title">Note premute erroneamente</div><canvas id="errorsCanvas"></canvas></div>
+      <div id="historyOverview" class="history-view active">
+        <div class="metrics">
+          <div class="metric"><div id="mExercises" class="v">0</div><div class="l">Esercizi</div></div>
+          <div class="metric"><div id="mAccuracy" class="v">—</div><div class="l">Corretti senza errori</div><div id="mTrend" class="trend neutral"></div></div>
+          <div class="metric"><div id="mErrors" class="v">—</div><div class="l">Errori / esercizio</div></div>
+          <div class="metric"><div id="mTime" class="v">—</div><div class="l">Prima risposta</div></div>
+        </div>
+        <div class="charts">
+          <div class="chartbox"><div class="chart-title">Per data: esercizi corretti ed errori</div><canvas id="dailyCanvas"></canvas></div>
+          <div class="chartbox"><div class="chart-title">Miglioramento · media mobile 20 esercizi</div><canvas id="movingCanvas"></canvas></div>
+        </div>
+      </div>
+
+      <div id="historyNotes" class="history-view">
+        <div class="split-view">
+          <div class="chartbox"><div class="chart-title">Note più problematiche</div><canvas id="errorsCanvas"></canvas></div>
+          <div class="stats-table" id="noteStats"></div>
+        </div>
+      </div>
+
+      <div id="historyChords" class="history-view">
+        <div class="stats-table" id="chordStats"></div>
+      </div>
+
+      <div id="historyConfusions" class="history-view">
+        <div class="chartbox">
+          <div class="chart-title">Confusioni in modalità 1 nota</div>
+          <div class="chart-note">Riga = nota corretta · colonna = nota premuta per errore</div>
+          <canvas id="confusionCanvas"></canvas>
+        </div>
       </div>
 
       <div class="recent">
-        <div class="recent-row head"><div>Quando</div><div>Modalità</div><div>Precisione</div><div>Errori</div></div>
+        <div class="recent-row head"><div>Quando</div><div>Modalità</div><div>Esito</div><div>Errori</div></div>
         <div id="recentRows"></div>
       </div>
-      <div class="history-actions"><button id="clearHistory" class="danger" type="button">Azzera storico</button></div>
+
+      <div class="history-actions">
+        <button id="exportHistory" type="button">Esporta backup</button>
+        <button id="importHistory" type="button">Importa backup</button>
+        <input id="importFile" type="file" accept="application/json" hidden>
+        <button id="clearHistory" class="danger" type="button">Azzera storico</button>
+      </div>
     </div>
   </section>
 </main>
-<script src="./app.js"></script>
+<script type="module" src="./app.js"></script>
 </body>
 </html>
