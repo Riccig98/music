@@ -545,3 +545,83 @@ html,body{
     grid-template-columns:1fr 1.25fr;
   }
 }
+
+
+/* v17: mobile fix from real-device screenshot */
+#identifyPanel{
+  display:none!important;
+}
+#chordTypeWrap{
+  display:none!important;
+}
+[hidden]{
+  display:none!important;
+}
+.trainer-main > .exercise-feedback{
+  order:0!important;
+  display:flex!important;
+  min-height:54px;
+  margin:0 0 7px!important;
+}
+#keyboardWrap{
+  order:1!important;
+}
+.bottom-actions{
+  order:2!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,.78fr) minmax(0,1.17fr)!important;
+  width:100%!important;
+  gap:8px!important;
+  margin:7px 0 0!important;
+  align-items:stretch!important;
+}
+.bottom-actions > #nextBtn{
+  grid-column:1!important;
+  grid-row:1!important;
+  width:100%!important;
+  max-width:none!important;
+  min-height:58px!important;
+  margin:0!important;
+}
+.bottom-actions > #playBtn{
+  grid-column:2!important;
+  grid-row:1!important;
+  width:100%!important;
+  max-width:none!important;
+  min-height:58px!important;
+  margin:0!important;
+}
+@media(max-width:760px) and (orientation:landscape){
+  .trainer-main > .exercise-feedback{
+    min-height:42px!important;
+    margin-bottom:5px!important;
+  }
+  .bottom-actions{
+    grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr)!important;
+    gap:6px!important;
+    margin-top:5px!important;
+  }
+  .bottom-actions > #nextBtn,
+  .bottom-actions > #playBtn{
+    min-height:46px!important;
+  }
+}
+@media(max-width:620px) and (orientation:portrait){
+  .trainer-main > .exercise-feedback{
+    min-height:58px!important;
+    margin-bottom:8px!important;
+  }
+  .bottom-actions{
+    grid-template-columns:minmax(0,.74fr) minmax(0,1.26fr)!important;
+    gap:8px!important;
+    margin-top:8px!important;
+  }
+  .bottom-actions > #nextBtn,
+  .bottom-actions > #playBtn{
+    min-height:64px!important;
+    border-radius:16px!important;
+  }
+  .bottom-actions > #playBtn{
+    font-size:18px!important;
+  }
+}
