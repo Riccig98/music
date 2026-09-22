@@ -48,58 +48,88 @@
   </section>
 
   <section id="trainerScreen" class="screen">
-    <div class="panel trainer-grid">
-      <div class="side">
-        <div id="trainerTitle" class="mode-title">Accordi</div>
-        <div id="trainerSub" class="sub">L’ottava non conta.</div>
+    <div class="trainer-shell">
+      <div class="trainer-head">
+        <div class="trainer-heading">
+          <div id="trainerTitle" class="mode-title">Accordi</div>
+          <div id="trainerSub" class="sub">L’ottava non conta.</div>
+        </div>
+        <button id="settingsBtn" class="options-toggle" type="button" aria-expanded="false">Opzioni</button>
+      </div>
 
-        <div id="chordTypeWrap" class="segmented" hidden>
-          <button type="button" data-chord-task="notes" class="active">Note</button>
-          <button type="button" data-chord-task="identify">Che accordo è?</button>
+      <div id="settingsPanel" class="options-drawer" hidden>
+        <div class="option-section">
+          <div class="option-section-title">Esercizio</div>
+
+          <div id="chordTypeWrap" class="segmented" hidden>
+            <button type="button" data-chord-task="notes" class="active">Trova le note</button>
+            <button type="button" data-chord-task="identify">Riconosci accordo</button>
+          </div>
+
+          <label class="option-field">
+            <span id="modeOptionLabel">Difficoltà</span>
+            <select id="modeOption" aria-label="Difficoltà"></select>
+          </label>
+
+          <label class="option-field">
+            <span>Metodo</span>
+            <select id="trainingMethod" aria-label="Metodo">
+              <option value="random">Casuale</option>
+              <option value="adaptive">Adattivo</option>
+              <option value="weakness">Debolezze</option>
+            </select>
+          </label>
         </div>
 
-        <div class="controls">
-          <select id="modeOption" aria-label="Difficoltà"></select>
-          <select id="trainingMethod" aria-label="Metodo">
-            <option value="random">Casuale</option>
-            <option value="adaptive">Adattivo</option>
-            <option value="weakness">Debolezze</option>
-          </select>
-          <select id="timbre" aria-label="Timbro">
-            <option value="piano">Piano reale</option>
-            <option value="epiano">E-Piano</option>
-            <option value="organ">Organo</option>
-          </select>
-          <button id="playBtn" class="primary" type="button">▶ Ascolta</button>
-          <button id="nextBtn" type="button" disabled>Successivo →</button>
-          <button id="settingsBtn" type="button">Impostazioni</button>
-        </div>
+        <div class="option-section">
+          <div class="option-section-title">Suono</div>
+          <label class="option-field">
+            <span>Timbro</span>
+            <select id="timbre" aria-label="Timbro">
+              <option value="piano">Piano</option>
+              <option value="epiano">E-Piano</option>
+              <option value="organ">Organo</option>
+            </select>
+          </label>
 
-        <div id="settingsPanel" class="settings-panel" hidden>
-          <label>Registro
+          <label class="option-field">
+            <span>Registro</span>
             <select id="registerPreset">
               <option value="speaker">Speaker telefono</option>
               <option value="headphones">Cuffie</option>
               <option value="full">Completo</option>
             </select>
           </label>
-          <label>Notazione
+        </div>
+
+        <div id="answerOptionsSection" class="option-section">
+          <div class="option-section-title">Risposta</div>
+          <label class="option-field">
+            <span>Notazione</span>
             <select id="notationMode">
               <option value="both">Diesis / bemolli</option>
               <option value="sharp">Diesis</option>
               <option value="flat">Bemolli</option>
             </select>
           </label>
-          <label class="checkline"><input id="showLabels" type="checkbox" checked> Mostra nomi note</label>
-          <label class="checkline"><input id="antiReference" type="checkbox" checked> Anti-riferimento tra esercizi</label>
+          <label id="showLabelsRow" class="checkline"><input id="showLabels" type="checkbox" checked> Mostra nomi sui tasti</label>
+          <label class="checkline"><input id="antiReference" type="checkbox" checked> Allontana esercizi consecutivi</label>
         </div>
-
-        <div id="status" class="status" aria-live="polite"></div>
-        <div id="progress" class="progress"></div>
-        <div id="answer" class="answer"></div>
       </div>
 
-      <div>
+      <div class="trainer-main">
+        <div class="primary-actions">
+          <button id="playBtn" class="listen-button" type="button"><span class="action-icon">▶</span><span>Ascolta</span></button>
+
+          <div class="exercise-feedback" aria-live="polite">
+            <div id="status" class="status"></div>
+            <div id="progress" class="progress"></div>
+            <div id="answer" class="answer"></div>
+          </div>
+
+          <button id="nextBtn" class="next-button" type="button" disabled><span>Avanti</span><span class="action-icon">→</span></button>
+        </div>
+
         <div id="keyboardWrap" class="keyboard-wrap">
           <div id="keyboard" class="keyboard" aria-label="Tastiera cromatica">
             <button class="key white" data-pc="0" type="button"><span class="label">Do</span></button>
@@ -127,7 +157,7 @@
               <select id="qualityAnswer"></select>
             </label>
           </div>
-          <button id="confirmChord" class="primary" type="button">Conferma</button>
+          <button id="confirmChord" class="primary confirm-answer" type="button">Conferma risposta</button>
         </div>
       </div>
     </div>
