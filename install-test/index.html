@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>Chord Install Test</title>
+<link rel="manifest" href="./manifest.webmanifest">
+</head>
+<body style="margin:0;font-family:system-ui;background:#111827;color:white;min-height:100vh;display:grid;place-items:center">
+  <main style="width:min(520px,calc(100% - 32px));text-align:center">
+    <h1>Chord Install Test</h1>
+    <p id="status">Preparazione installazione…</p>
+    <button id="install" hidden style="font:inherit;font-weight:800;font-size:18px;padding:16px 22px;border-radius:14px;border:0">Installa test</button>
+  </main>
+<script>
+let promptEvent=null;
+const button=document.getElementById("install");
+const status=document.getElementById("status");
+
+window.addEventListener("beforeinstallprompt",event=>{
+  event.preventDefault();
+  promptEvent=event;
+  status.textContent="PWA installabile";
+  button.hidden=false;
+});
+
+window.addEventListener("appinstalled",()=>{
+  status.textContent="Installazione accettata da Chrome";
+  button.hidden=true;
+});
+
+button.addEventListener("click",async()=>{
+  if(!promptEvent)return;
+  await promptEvent.prompt();
+  const choice=await promptEvent.userChoice;
+  status.textContent="Risposta Chrome: "+choice.outcome;
+  promptEvent=null;
+});
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js")
+    .then(()=>navigator.serviceWorker.ready)
+    .then(()=>{ if(!promptEvent) status.textContent="Service worker pronto. Attendo Chrome…"; })
+    .catch(err=>status.textContent="Errore service worker: "+err.message);
+}
+</script>
+</body>
+</html>
