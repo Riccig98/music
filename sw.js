@@ -1,4 +1,4 @@
-const CACHE="chord-ear-trainer-v9";
+const CACHE="chord-ear-trainer-v10";
 const FILES=[
   "./",
   "./index.html",
@@ -7,7 +7,15 @@ const FILES=[
   "./db.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./icons/icon-512.png",
+  "./samples/piano/Gs2.ogg",
+  "./samples/piano/C3.ogg",
+  "./samples/piano/G3.ogg",
+  "./samples/piano/C4.ogg",
+  "./samples/piano/G4.ogg",
+  "./samples/piano/C5.ogg",
+  "./samples/piano/G5.ogg",
+  "./samples/piano/C6.ogg"
 ];
 
 self.addEventListener("install",event=>{
@@ -24,14 +32,20 @@ self.addEventListener("activate",event=>{
 
 self.addEventListener("fetch",event=>{
   if(event.request.method!=="GET")return;
-  event.respondWith(
-    caches.match(event.request).then(cached=>{
-      const network=fetch(event.request).then(response=>{
+
+  const requestUrl=new URL(event.request.url);
+  const isAppAsset=requestUrl.origin===self.location.origin&&requestUrl.pathname.startsWith("/music/");
+
+  if(isAppAsset){
+    event.respondWith(
+      fetch(event.request).then(response=>{
         const copy=response.clone();
         caches.open(CACHE).then(cache=>cache.put(event.request,copy));
         return response;
-      });
-      return cached||network.catch(()=>caches.match("./index.html"));
-    })
-  );
+      }).catch(()=>caches.match(event.request).then(r=>r||caches.match("./index.html")))
+    );
+    return;
+  }
+
+  event.respondWith(caches.match(event.request).then(r=>r||fetch(event.request)));
 });
