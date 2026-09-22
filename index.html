@@ -54,7 +54,10 @@
           <div id="trainerTitle" class="mode-title">Accordi</div>
           <div id="trainerSub" class="sub">L’ottava non conta.</div>
         </div>
-        <button id="settingsBtn" class="options-toggle" type="button" aria-expanded="false">Opzioni</button>
+        <div class="trainer-head-actions">
+          <button id="favoriteBtn" class="favorite-toggle" type="button" aria-label="Salva questo voicing" title="Salva questo voicing" hidden>☆</button>
+          <button id="settingsBtn" class="options-toggle" type="button" aria-expanded="false">Opzioni</button>
+        </div>
       </div>
 
       <div id="settingsPanel" class="options-drawer" hidden>
@@ -114,6 +117,14 @@
           </label>
           <label id="showLabelsRow" class="checkline"><input id="showLabels" type="checkbox" checked> Mostra nomi sui tasti</label>
           <label class="checkline"><input id="antiReference" type="checkbox" checked> Allontana esercizi consecutivi</label>
+        </div>
+
+        <div id="favoritesSection" class="option-section favorites-section" hidden>
+          <div class="option-section-title favorites-title-row">
+            <span>Voicing preferiti</span>
+            <span id="favoritesCount" class="favorites-count">0</span>
+          </div>
+          <div id="favoritesList" class="favorites-list"></div>
         </div>
       </div>
 
