@@ -62,6 +62,8 @@ const status=$("status");
 const progress=$("progress");
 const answer=$("answer");
 const chordTypeWrap=$("chordTypeWrap");
+const modeOptionLabel=$("modeOptionLabel");
+const showLabelsRow=$("showLabelsRow");
 
 let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",event=>{
@@ -92,82 +94,6 @@ let historyCache=[];
 let ctx=null;
 let master=null;
 let lastSignature="";
-
-const PIANO_ANCHORS=[
-  {midi:44,file:"Gs2.ogg"},
-  {midi:48,file:"C3.ogg"},
-  {midi:55,file:"G3.ogg"},
-  {midi:60,file:"C4.ogg"},
-  {midi:67,file:"G4.ogg"},
-  {midi:72,file:"C5.ogg"},
-  {midi:79,file:"G5.ogg"},
-  {midi:84,file:"C6.ogg"}
-];
-const pianoSamples=new Map();
-let pianoLoadPromise=null;
-
-function bufferRms(buffer){
-  let sum=0,count=0;
-  for(let ch=0;ch<buffer.numberOfChannels;ch++){
-    const data=buffer.getChannelData(ch);
-    for(let i=0;i<data.length;i+=16){
-      const v=data[i];
-      sum+=v*v;
-      count++;
-    }
-  }
-  return count?Math.sqrt(sum/count):.1;
-}
-
-function loadPianoSamples(){
-  if(pianoLoadPromise)return pianoLoadPromise;
-  pianoLoadPromise=(async()=>{
-    ensureAudio();
-    await Promise.all(PIANO_ANCHORS.map(async anchor=>{
-      try{
-        const res=await fetch(`./samples/piano/${anchor.file}`,{cache:"force-cache"});
-        if(!res.ok)throw new Error("sample");
-        const raw=await res.arrayBuffer();
-        const decoded=await ctx.decodeAudioData(raw.slice(0));
-        const rms=bufferRms(decoded);
-        const norm=Math.max(.5,Math.min(2.0,.115/Math.max(rms,.025)));
-        pianoSamples.set(anchor.midi,{buffer:decoded,norm});
-      }catch(_){}
-    }));
-    return pianoSamples.size;
-  })();
-  return pianoLoadPromise;
-}
-
-function nearestPianoAnchor(midi){
-  return PIANO_ANCHORS.reduce((best,a)=>Math.abs(a.midi-midi)<Math.abs(best.midi-midi)?a:best,PIANO_ANCHORS[0]);
-}
-
-function playSampledPiano(midi,when=0,solo=false,scale=1){
-  ensureAudio();
-  const anchor=nearestPianoAnchor(midi);
-  const sample=pianoSamples.get(anchor.midi);
-  if(!sample){
-    loadPianoSamples();
-    playPiano(midi,when,solo?1.05:1.7,.195*(solo?1.05:1));
-    return;
-  }
-  const t=ctx.currentTime+when;
-  const src=ctx.createBufferSource();
-  const g=ctx.createGain();
-  src.buffer=sample.buffer;
-  src.playbackRate.setValueAtTime(Math.pow(2,(midi-anchor.midi)/12),t);
-  const level=(solo?.62:.36)*sample.norm*loudnessComp(midi)*scale;
-  g.gain.setValueAtTime(.0001,t);
-  g.gain.exponentialRampToValueAtTime(Math.max(.001,level),t+.008);
-  const audible=Math.min(2.6,sample.buffer.duration/src.playbackRate.value);
-  g.gain.setValueAtTime(Math.max(.001,level*.92),t+Math.min(.16,audible*.15));
-  g.gain.exponentialRampToValueAtTime(.0001,t+Math.max(.35,audible-.04));
-  src.connect(g);
-  g.connect(ctx._comp);
-  src.start(t);
-  src.stop(t+audible);
-}
 
 function displayNote(pc){
   if(notationMode.value==="sharp")return SHARP_NAMES[pc];
@@ -202,7 +128,16 @@ function saveSettings(){
 }
 function applyLabelSetting(){keyboard.classList.toggle("hide-labels",!showLabels.checked)}
 [registerPreset,notationMode,showLabels,antiReference].forEach(el=>el.addEventListener("change",()=>{saveSettings();applyLabelSetting();applyNotation()}));
-settingsBtn.addEventListener("click",()=>settingsPanel.hidden=!settingsPanel.hidden);
+function setOptionsOpen(open){
+  settingsPanel.hidden=!open;
+  settingsBtn.setAttribute("aria-expanded",open?"true":"false");
+}
+settingsBtn.addEventListener("click",event=>{
+  event.stopPropagation();
+  setOptionsOpen(settingsPanel.hidden);
+});
+settingsPanel.addEventListener("click",event=>event.stopPropagation());
+document.addEventListener("click",()=>setOptionsOpen(false));
 
 function showScreen(name){
   Object.values(screens).forEach(s=>s.classList.remove("active"));
@@ -221,10 +156,12 @@ document.querySelectorAll("[data-open]").forEach(btn=>btn.addEventListener("clic
 function openTrainer(mode){
   appMode=mode;
   $("trainerTitle").textContent=mode==="chords"?"Accordi":"Note";
-  $("trainerSub").textContent=mode==="chords"?"Scegli manualmente livello e metodo.":"Una o due note; livello sempre scelto da te.";
+  $("trainerSub").textContent=mode==="chords"?"Ascolta e trova la risposta.":"Ascolta e riconosci le note.";
   chordTypeWrap.hidden=mode!=="chords";
+  modeOptionLabel.textContent=mode==="chords"?"Difficoltà":"Numero di note";
   chordTask="notes";
   syncChordTaskButtons();
+  setOptionsOpen(false);
 
   if(mode==="chords"){
     modeOption.innerHTML='<option value="easy">Facile</option><option value="jazz" selected>Jazz</option><option value="advanced">Avanzato</option>';
@@ -251,6 +188,7 @@ function syncAnswerUI(){
   const identify=appMode==="chords"&&chordTask==="identify";
   keyboardWrap.hidden=identify;
   identifyPanel.hidden=!identify;
+  showLabelsRow.hidden=identify;
   if(identify)refreshQualityOptions();
 }
 function refreshQualityOptions(){
@@ -309,11 +247,11 @@ function playOrgan(midi,when=0,dur=1.5,gain=.108){
     connectVoice(o,g);o.start(t);o.stop(t+dur+.04);
   });
 }
-function playMidi(midi,when=0,solo=false,scale=1){
-  const g=(solo?1.1:1)*loudnessComp(midi)*scale;
+function playMidi(midi,when=0,solo=false){
+  const g=(solo?1.1:1)*loudnessComp(midi);
   if(timbre.value==="epiano")playEPiano(midi,when,solo?1.1:1.6,.18*g);
   else if(timbre.value==="organ")playOrgan(midi,when,solo?1:1.5,.108*g);
-  else playSampledPiano(midi,when,solo,scale);
+  else playPiano(midi,when,solo?1.05:1.7,.195*g);
 }
 function registerBounds(){
   if(registerPreset.value==="full")return{base:43,min:43,max:88,key:48};
@@ -480,8 +418,7 @@ function playChallenge(userInitiated=true){
   ensureAudio();
   if(hasPlayed&&userInitiated)replayCount++;
   if(!hasPlayed){hasPlayed=true;firstSoundAt=Date.now()}
-  const polyScale=Math.min(1,Math.sqrt(3/Math.max(1,challenge.midis.length)));
-  challenge.midis.forEach(m=>playMidi(m,0,false,polyScale));
+  challenge.midis.forEach(m=>playMidi(m,0,false));
 }
 playBtn.addEventListener("click",()=>playChallenge(true));
 nextBtn.addEventListener("click",()=>nextChallenge(true));
@@ -860,7 +797,6 @@ async function init(){
   historyCache=await getAllExercises();
   loadSettings();
   refreshDetailFilter();
-  loadPianoSamples();
   await pwaSetupPromise;
 }
 init();
