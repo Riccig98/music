@@ -3,17 +3,21 @@
   "name": "Chord Ear Trainer",
   "short_name": "Ear Trainer",
   "description": "Allenamento uditivo per note e accordi con storico e statistiche.",
+  "lang": "it",
+  "dir": "ltr",
   "start_url": "/music/",
   "scope": "/music/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": ["standalone"],
   "orientation": "landscape",
   "background_color": "#0b0e13",
   "theme_color": "#0b0e13",
   "prefer_related_applications": false,
   "categories": ["education", "music"],
   "icons": [
-    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"maskable"},
+    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
   ]
 }
