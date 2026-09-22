@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chord Ear Trainer</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="stylesheet" href="./styles.css">
+<meta name="theme-color" content="#0b0e13">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+</head>
+<body>
+<main>
+  <div class="topbar">
+    <button id="homeBtn" class="iconbtn" type="button" hidden>←</button>
+    <div class="brand">Chord Ear Trainer</div>
+    <div class="spacer"></div>
+    <button id="installBtn" type="button" hidden>Installa</button>
+  </div>
+
+  <section id="homeScreen" class="screen active">
+    <div class="home-intro">
+      <h1>Allenamento uditivo</h1>
+      <p>Scegli cosa allenare. Tutto viene salvato automaticamente.</p>
+    </div>
+    <div class="home-grid">
+      <button class="home-card" data-open="chords" type="button">
+        <div><div class="big">Accordi</div><div class="small">Riconosci tutte le note di accordi semplici, jazz e avanzati.</div></div>
+        <div class="arrow">→</div>
+      </button>
+      <button class="home-card" data-open="notes" type="button">
+        <div><div class="big">Note</div><div class="small">Allenati con una nota singola oppure due note insieme.</div></div>
+        <div class="arrow">→</div>
+      </button>
+      <button class="home-card" data-open="history" type="button">
+        <div><div class="big">Storico</div><div class="small">Errori, precisione e miglioramento nel tempo.</div></div>
+        <div class="arrow">→</div>
+      </button>
+    </div>
+  </section>
+
+  <section id="trainerScreen" class="screen">
+    <div class="panel trainer-grid">
+      <div class="side">
+        <div id="trainerTitle" class="mode-title">Accordi</div>
+        <div id="trainerSub" class="sub">Trova tutte le note. L’ottava non conta.</div>
+        <div class="controls">
+          <select id="modeOption" aria-label="Modalità"></select>
+          <select id="timbre" aria-label="Timbro">
+            <option value="piano">Piano</option>
+            <option value="epiano">E-Piano</option>
+            <option value="organ">Organo</option>
+          </select>
+          <button id="playBtn" class="primary" type="button">▶ Ascolta</button>
+          <button id="nextBtn" type="button" disabled>Successivo →</button>
+        </div>
+        <div id="status" class="status" aria-live="polite"></div>
+        <div id="progress" class="progress"></div>
+        <div id="answer" class="answer"></div>
+      </div>
+
+      <div class="keyboard-wrap">
+        <div id="keyboard" class="keyboard" aria-label="Tastiera cromatica">
+          <button class="key white" data-pc="0" type="button"><span class="label">Do</span></button>
+          <button class="key white" data-pc="2" type="button"><span class="label">Re</span></button>
+          <button class="key white" data-pc="4" type="button"><span class="label">Mi</span></button>
+          <button class="key white" data-pc="5" type="button"><span class="label">Fa</span></button>
+          <button class="key white" data-pc="7" type="button"><span class="label">Sol</span></button>
+          <button class="key white" data-pc="9" type="button"><span class="label">La</span></button>
+          <button class="key white" data-pc="11" type="button"><span class="label">Si</span></button>
+          <button class="key black" data-pc="1" type="button" style="left:14.285%"><span class="label">Do♯</span></button>
+          <button class="key black" data-pc="3" type="button" style="left:28.57%"><span class="label">Re♯</span></button>
+          <button class="key black" data-pc="6" type="button" style="left:57.14%"><span class="label">Fa♯</span></button>
+          <button class="key black" data-pc="8" type="button" style="left:71.425%"><span class="label">Sol♯</span></button>
+          <button class="key black" data-pc="10" type="button" style="left:85.71%"><span class="label">La♯</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="historyScreen" class="screen">
+    <div class="panel">
+      <div class="history-filters">
+        <select id="periodFilter" aria-label="Periodo">
+          <option value="all">Tutto</option>
+          <option value="7">Ultimi 7 giorni</option>
+          <option value="30" selected>Ultimi 30 giorni</option>
+          <option value="90">Ultimi 90 giorni</option>
+        </select>
+        <select id="modeFilter" aria-label="Tipo">
+          <option value="all">Tutte le modalità</option>
+          <option value="chords">Accordi</option>
+          <option value="notes">Note</option>
+        </select>
+        <select id="detailFilter" aria-label="Livello"><option value="all">Tutti i livelli</option></select>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><div id="mExercises" class="v">0</div><div class="l">Esercizi</div></div>
+        <div class="metric"><div id="mAccuracy" class="v">—</div><div class="l">Precisione</div><div id="mTrend" class="trend neutral"></div></div>
+        <div class="metric"><div id="mErrors" class="v">—</div><div class="l">Errori / esercizio</div></div>
+        <div class="metric"><div id="mTime" class="v">—</div><div class="l">Tempo medio</div></div>
+      </div>
+
+      <div class="charts">
+        <div class="chartbox"><div class="chart-title">Andamento della precisione</div><canvas id="trendCanvas"></canvas></div>
+        <div class="chartbox"><div class="chart-title">Note premute erroneamente</div><canvas id="errorsCanvas"></canvas></div>
+      </div>
+
+      <div class="recent">
+        <div class="recent-row head"><div>Quando</div><div>Modalità</div><div>Precisione</div><div>Errori</div></div>
+        <div id="recentRows"></div>
+      </div>
+      <div class="history-actions"><button id="clearHistory" class="danger" type="button">Azzera storico</button></div>
+    </div>
+  </section>
+</main>
+<script src="./app.js"></script>
+</body>
+</html>
