@@ -64,6 +64,10 @@ const answer=$("answer");
 const chordTypeWrap=$("chordTypeWrap");
 const modeOptionLabel=$("modeOptionLabel");
 const showLabelsRow=$("showLabelsRow");
+const favoriteBtn=$("favoriteBtn");
+const favoritesSection=$("favoritesSection");
+const favoritesList=$("favoritesList");
+const favoritesCount=$("favoritesCount");
 
 let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",event=>{
@@ -94,6 +98,92 @@ let historyCache=[];
 let ctx=null;
 let master=null;
 let lastSignature="";
+const FAVORITES_KEY="cet-favorite-voicings-v1";
+let favoriteVoicings=loadFavoriteVoicings();
+
+function loadFavoriteVoicings(){
+  try{
+    const rows=JSON.parse(localStorage.getItem(FAVORITES_KEY)||"[]");
+    return Array.isArray(rows)?rows:[];
+  }catch(_){return[]}
+}
+function saveFavoriteVoicings(){
+  localStorage.setItem(FAVORITES_KEY,JSON.stringify(favoriteVoicings.slice(-200)));
+  renderFavorites();
+  syncFavoriteButton();
+}
+function voicingFavoriteKey(c=challenge){
+  if(!c||c.kind!=="chords")return"";
+  return `${c.root}|${c.ch?.n||""}|${(c.midis||[]).join(",")}`;
+}
+function isCurrentVoicingFavorite(){
+  const key=voicingFavoriteKey();
+  return !!key&&favoriteVoicings.some(x=>x.key===key);
+}
+function midiNoteLabel(midi){
+  const pc=((midi%12)+12)%12;
+  const oct=Math.floor(midi/12)-1;
+  return `${shortDisplayNote(pc)}${oct}`;
+}
+function syncFavoriteButton(){
+  const show=appMode==="chords"&&challenge?.kind==="chords";
+  favoriteBtn.hidden=!show;
+  if(!show)return;
+  const saved=isCurrentVoicingFavorite();
+  favoriteBtn.textContent=saved?"★":"☆";
+  favoriteBtn.classList.toggle("saved",saved);
+  favoriteBtn.setAttribute("aria-label",saved?"Rimuovi questo voicing dai preferiti":"Salva questo voicing nei preferiti");
+  favoriteBtn.title=saved?"Rimuovi dai preferiti":"Salva questo voicing";
+}
+function toggleCurrentFavorite(){
+  if(!challenge||challenge.kind!=="chords")return;
+  const key=voicingFavoriteKey();
+  const at=favoriteVoicings.findIndex(x=>x.key===key);
+  if(at>=0){
+    favoriteVoicings.splice(at,1);
+  }else{
+    favoriteVoicings.push({
+      id:`${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+      key,
+      savedAt:Date.now(),
+      root:challenge.root,
+      chordName:challenge.ch?.n||"",
+      detail:challenge.detail,
+      voicingLabel:challenge.voicingLabel||"Voicing",
+      midis:[...(challenge.midis||[])],
+      pcs:[...(challenge.pcs||[])]
+    });
+  }
+  saveFavoriteVoicings();
+}
+function playFavoriteVoicing(row){
+  ensureAudio();
+  (row.midis||[]).forEach(m=>playMidi(m,0,false));
+}
+function removeFavorite(id){
+  favoriteVoicings=favoriteVoicings.filter(x=>x.id!==id);
+  saveFavoriteVoicings();
+}
+function renderFavorites(){
+  favoritesCount.textContent=String(favoriteVoicings.length);
+  favoritesSection.hidden=appMode!=="chords";
+  if(!favoriteVoicings.length){
+    favoritesList.innerHTML='<div class="favorite-empty">Salva una sonorità con ☆ mentre ascolti un accordo.</div>';
+    return;
+  }
+  favoritesList.innerHTML=[...favoriteVoicings].reverse().map(row=>{
+    const title=`${displayNote(row.root)} ${row.chordName}`;
+    const notes=(row.midis||[]).map(midiNoteLabel).join(" · ");
+    return `<div class="favorite-row" data-favorite-id="${row.id}">
+      <button class="favorite-play" type="button" data-favorite-play="${row.id}" aria-label="Ascolta">▶</button>
+      <div class="favorite-copy">
+        <div class="favorite-name">${title}</div>
+        <div class="favorite-meta">${row.voicingLabel||"Voicing"} · ${notes}</div>
+      </div>
+      <button class="favorite-remove" type="button" data-favorite-remove="${row.id}" aria-label="Rimuovi">×</button>
+    </div>`;
+  }).join("");
+}
 
 function displayNote(pc){
   if(notationMode.value==="sharp")return SHARP_NAMES[pc];
@@ -111,6 +201,7 @@ function applyNotation(){
     if(label)label.textContent=displayNote(pc);
   });
   if(appMode==="chords"&&chordTask==="identify")refreshQualityOptions();
+  renderFavorites();
 }
 function loadSettings(){
   registerPreset.value=localStorage.getItem("cet-register")||"speaker";
@@ -138,6 +229,22 @@ settingsBtn.addEventListener("click",event=>{
 });
 settingsPanel.addEventListener("click",event=>event.stopPropagation());
 document.addEventListener("click",()=>setOptionsOpen(false));
+favoriteBtn.addEventListener("click",event=>{
+  event.stopPropagation();
+  toggleCurrentFavorite();
+});
+favoritesList.addEventListener("click",event=>{
+  const play=event.target.closest("[data-favorite-play]");
+  const remove=event.target.closest("[data-favorite-remove]");
+  if(play){
+    event.stopPropagation();
+    const row=favoriteVoicings.find(x=>x.id===play.dataset.favoritePlay);
+    if(row)playFavoriteVoicing(row);
+  }else if(remove){
+    event.stopPropagation();
+    removeFavorite(remove.dataset.favoriteRemove);
+  }
+});
 
 function showScreen(name){
   Object.values(screens).forEach(s=>s.classList.remove("active"));
@@ -170,6 +277,7 @@ function openTrainer(mode){
   }
   showScreen("trainer");
   syncAnswerUI();
+  renderFavorites();
   nextChallenge(false);
 }
 modeOption.addEventListener("change",()=>{refreshQualityOptions();nextChallenge(false)});
@@ -321,20 +429,86 @@ function chordWeight(ch){
   return method==="weakness"?1+w*9:1+w*3;
 }
 
+function fitVoicingToBounds(midis,bounds){
+  let v=[...new Set(midis)].sort((a,b)=>a-b);
+  if(!v.length)return v;
+  let guard=0;
+  while(Math.min(...v)<bounds.min&&guard++<8)v=v.map(x=>x+12);
+  guard=0;
+  while(Math.max(...v)>bounds.max&&guard++<8)v=v.map(x=>x-12);
+  if(Math.min(...v)>=bounds.min&&Math.max(...v)<=bounds.max)return v;
+  return null;
+}
+function rotateInversion(midis,steps){
+  const v=[...midis].sort((a,b)=>a-b);
+  for(let i=0;i<steps;i++){
+    const first=v.shift();
+    v.push(first+12);
+    v.sort((a,b)=>a-b);
+  }
+  return v;
+}
+function voicingCandidates(baseMidis,rootMidi,level,allowRootless){
+  const base=[...baseMidis].sort((a,b)=>a-b);
+  const out=[{label:"Posizione stretta",midis:base}];
+
+  if(base.length>=3){
+    out.push({label:"1° rivolto",midis:rotateInversion(base,1)});
+    out.push({label:"2° rivolto",midis:rotateInversion(base,2)});
+    out.push({label:"Posizione aperta",midis:base.map((m,i)=>i===1?m+12:m)});
+    out.push({label:"Spread",midis:base.map((m,i)=>i>=Math.ceil(base.length/2)?m+12:m)});
+    out.push({label:"Basso + ottava",midis:[rootMidi-12,...base,rootMidi+12]});
+  }
+
+  if(base.length>=4){
+    const desc=[...base].sort((a,b)=>b-a);
+    out.push({label:"Drop 2",midis:desc.map((m,i)=>i===1?m-12:m)});
+    out.push({label:"Drop 3",midis:desc.map((m,i)=>i===2?m-12:m)});
+    if(base.length>=5)out.push({label:"Drop 2 & 4",midis:desc.map((m,i)=>(i===1||i===3)?m-12:m)});
+    out.push({label:"Upper spread",midis:base.map((m,i)=>i>=2?m+12:m)});
+    out.push({label:"Voicing largo",midis:base.map((m,i)=>i%2===1?m+12:m)});
+    out.push({label:"Basso pedal",midis:[rootMidi-12,...base.map(m=>m+12)]});
+
+    if(allowRootless){
+      const rootPc=((rootMidi%12)+12)%12;
+      const noRoot=base.filter((m,i)=>!(i===0&&((m%12)+12)%12===rootPc));
+      if(noRoot.length>=3){
+        out.push({label:"Rootless",midis:noRoot});
+        out.push({label:"Rootless spread",midis:noRoot.map((m,i)=>i>=Math.ceil(noRoot.length/2)?m+12:m)});
+      }
+    }
+  }
+
+  if(level==="advanced"&&base.length>=4){
+    out.push({label:"Cluster alto",midis:base.map((m,i)=>i===0?m-12:m)});
+    out.push({label:"Doppia cima",midis:[...base,Math.max(...base)+12]});
+    out.push({label:"Doppio basso",midis:[Math.min(...base)-12,...base]});
+  }
+
+  return out.map(x=>({...x,midis:[...x.midis].sort((a,b)=>a-b)}));
+}
 function chordVoicing(root,ch,level,shift=0,forIdentification=false){
   let ints=ch.i.slice();
-  if(!forIdentification&&ch.omit?.length&&(level==="advanced"||Math.random()<.55))ints=ints.filter(x=>!ch.omit.includes(x));
-  if(!forIdentification&&level==="advanced"&&!ch.rootless&&ints.includes(0)&&ints.length>=4&&Math.random()<.28)ints=ints.filter(x=>x!==0);
+
+  if(!forIdentification&&ch.omit?.length&&(level==="advanced"||Math.random()<.52)){
+    ints=ints.filter(x=>!ch.omit.includes(x));
+  }
 
   const b=registerBounds();
-  let midis=ints.map(i=>b.base+root+i+shift);
-  const roll=Math.random();
-  if(midis.length>=4&&roll<.30)midis=midis.map((m,i)=>i%2?m+12:m).sort((a,b)=>a-b);
-  else if(midis.length>=4&&roll<.50){midis.sort((a,b)=>a-b);midis[midis.length-2]-=12;midis.sort((a,b)=>a-b)}
+  const rootMidi=b.base+root+shift;
+  const baseMidis=ints.map(i=>rootMidi+i).sort((a,b)=>a-b);
+  const allowRootless=!forIdentification&&(level==="advanced"||ch.rootless===true);
+  const candidates=voicingCandidates(baseMidis,rootMidi,level,allowRootless)
+    .map(v=>({...v,midis:fitVoicingToBounds(v.midis,b)}))
+    .filter(v=>v.midis&&v.midis.length>=2);
 
-  while(Math.min(...midis)<b.min)midis=midis.map(m=>m+12);
-  while(Math.max(...midis)>b.max&&Math.min(...midis)-12>=b.min)midis=midis.map(m=>m-12);
-  return{midis,pcs:[...new Set(midis.map(m=>(m%12+12)%12))].sort((a,b)=>a-b)};
+  const chosen=candidates.length?candidates[Math.floor(Math.random()*candidates.length)]:{label:"Posizione stretta",midis:fitVoicingToBounds(baseMidis,b)||baseMidis};
+  const midis=chosen.midis;
+  return{
+    midis,
+    voicingLabel:chosen.label,
+    pcs:[...new Set(midis.map(m=>((m%12)+12)%12))].sort((a,b)=>a-b)
+  };
 }
 function chordCandidateScore(prev,c){
   if(!prev||!antiReference.checked)return 999;
@@ -342,6 +516,10 @@ function chordCandidateScore(prev,c){
   const ov=overlapCount(prev.pcs,c.pcs),bd=bassDistance(prev,c);
   let score=rd*3+Math.min(bd,12)*1.3-ov*8;
   if(prev.ch?.n&&c.ch?.n&&prev.ch.n===c.ch.n)score-=7;
+  if(prev.voicingLabel&&c.voicingLabel&&prev.voicingLabel===c.voicingLabel)score-=4;
+  const prevSpan=prev.midis?.length?Math.max(...prev.midis)-Math.min(...prev.midis):0;
+  const curSpan=c.midis?.length?Math.max(...c.midis)-Math.min(...c.midis):0;
+  score+=Math.min(6,Math.abs(curSpan-prevSpan)*.35);
   if(rd>=4)score+=5;if(rd>=5)score+=4;if(ov===0)score+=8;else if(ov===1)score+=2;
   return score;
 }
@@ -358,7 +536,7 @@ function makeChordChallenge(prev){
     const ch=weightedPick(pool,chordWeight);
     const shift=Math.random()<.55?0:12;
     const v=chordVoicing(root,ch,level,shift,identifying);
-    const sig=`${root}|${ch.n}|${v.pcs.join(",")}|${shift}|${chordTask}`;
+    const sig=`${root}|${ch.n}|${v.midis.join(",")}|${v.voicingLabel}|${chordTask}`;
     if(sig===lastSignature)continue;
     const c={kind:"chords",root,ch,...v,detail:level,signature:sig};
     const score=chordCandidateScore(prev,c);
@@ -411,6 +589,7 @@ function nextChallenge(autoPlay=false){
   lastSignature=challenge.signature;
   resetAttemptState();
   updateProgress();
+  syncFavoriteButton();
   if(autoPlay)playChallenge(false);
 }
 function playChallenge(userInitiated=true){
@@ -454,6 +633,8 @@ async function saveCompleted(){
     targets:challenge.pcs.slice(),
     chordRoot:challenge.root??null,
     chordName:challenge.ch?.n??null,
+    voicingLabel:challenge.voicingLabel??null,
+    voicedMidis:challenge.midis?challenge.midis.slice():[],
     wrong:wrongPresses.slice(),
     wrongChordAnswers:wrongChordAnswers.slice(),
     errors,
@@ -471,6 +652,8 @@ async function finishExercise(){
   status.textContent="Corretto";status.className="status ok";nextBtn.disabled=false;
   if(appMode==="chords"&&chordTask==="identify"){
     answer.textContent=`${displayNote(challenge.root)} · ${challenge.ch.n}`;
+  }else if(appMode==="chords"){
+    answer.textContent=`${displayNote(challenge.root)} ${challenge.ch.n} · ${challenge.voicingLabel||"Voicing"} · ${challenge.pcs.map(pc=>displayNote(pc)).join(" · ")}`;
   }else{
     answer.textContent=challenge.pcs.map(pc=>displayNote(pc)).join(" · ");
   }
@@ -797,6 +980,8 @@ async function init(){
   historyCache=await getAllExercises();
   loadSettings();
   refreshDetailFilter();
+  renderFavorites();
+  syncFavoriteButton();
   await pwaSetupPromise;
 }
 init();
