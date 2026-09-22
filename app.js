@@ -69,23 +69,26 @@ const favoritesSection=$("favoritesSection");
 const favoritesList=$("favoritesList");
 const favoritesCount=$("favoritesCount");
 
-let deferredInstallPrompt=window.__pwaInstallPrompt||null;
-window.addEventListener("beforeinstallprompt",event=>{
-  event.preventDefault();
-  deferredInstallPrompt=event;
-  window.__pwaInstallPrompt=event;
+let deferredInstallPrompt=window.__installPrompt||null;
+
+window.addEventListener("pwa-install-ready",()=>{
+  deferredInstallPrompt=window.__installPrompt||null;
   installBtn.hidden=false;
   installBtn.textContent="Installa";
 });
+
+window.addEventListener("beforeinstallprompt",event=>{
+  event.preventDefault();
+  deferredInstallPrompt=event;
+  window.__installPrompt=event;
+  installBtn.hidden=false;
+  installBtn.textContent="Installa";
+});
+
 window.addEventListener("appinstalled",()=>{
   deferredInstallPrompt=null;
-  window.__pwaInstallPrompt=null;
+  window.__installPrompt=null;
   installBtn.hidden=true;
-  try{
-    const url=new URL(location.href);
-    url.searchParams.delete("install");
-    history.replaceState(null,"",url.pathname+url.search+url.hash);
-  }catch(_){}
 });
 
 let appMode=null;
@@ -1043,93 +1046,78 @@ $("clearHistory").addEventListener("click",async()=>{
 /* ---------- PWA / updates ---------- */
 async function setupPWA(){
   const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
-  const isNative=()=>location.hostname==="localhost"||location.protocol==="capacitor:";
-  const isAndroid=/Android/i.test(navigator.userAgent);
 
-  let registration=null;
-
-  function installEvent(){
-    return deferredInstallPrompt||window.__pwaInstallPrompt||null;
+  if(isStandalone()){
+    installBtn.hidden=true;
+  }else{
+    installBtn.hidden=false;
+    installBtn.textContent="Installa";
   }
 
-  function openFullChrome(){
-    const target=new URL(location.href);
-    target.searchParams.set("install","1");
-    target.hash="";
-    const fallback=encodeURIComponent(target.href);
-    const intent=`intent://${target.host}${target.pathname}${target.search}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${fallback};end`;
-    location.href=intent;
-  }
-
-  if("serviceWorker" in navigator&&location.protocol==="https:"&&!isNative()){
+  if("serviceWorker" in navigator&&location.protocol==="https:"){
     try{
-      registration=await navigator.serviceWorker.register("./sw.js",{scope:"./"});
+      const registration=await navigator.serviceWorker.register("/music/sw.js",{scope:"/music/"});
       await navigator.serviceWorker.ready;
+
       registration.addEventListener("updatefound",()=>{
         const worker=registration.installing;
         if(!worker)return;
         worker.addEventListener("statechange",()=>{
-          if(worker.state==="installed"&&navigator.serviceWorker.controller)$("updateBanner").hidden=false;
+          if(worker.state==="installed"&&navigator.serviceWorker.controller){
+            $("updateBanner").hidden=false;
+          }
         });
       });
-    }catch(_){}
-  }
-
-  if(isNative()||isStandalone()){
-    installBtn.hidden=true;
-  }else{
-    installBtn.hidden=false;
-    installBtn.textContent=new URL(location.href).searchParams.has("install")?"Installa app":"Installa";
+    }catch(err){
+      console.error("Service worker registration failed",err);
+    }
   }
 
   installBtn.addEventListener("click",async()=>{
-    if(isStandalone()||isNative()){
+    if(isStandalone()){
       installBtn.hidden=true;
       return;
     }
 
-    const promptEvent=installEvent();
-    if(promptEvent){
-      promptEvent.prompt();
-      try{
-        const choice=await promptEvent.userChoice;
-        if(choice?.outcome==="accepted")installBtn.hidden=true;
-      }catch(_){}
-      deferredInstallPrompt=null;
-      window.__pwaInstallPrompt=null;
+    const promptEvent=deferredInstallPrompt||window.__installPrompt;
+    if(!promptEvent){
+      alert("Chrome non ha ancora reso disponibile il prompt. Ricarica questa pagina nel Chrome completo e riprova.");
       return;
     }
 
-    // Links opened from ChatGPT/other Android apps are usually Chrome Custom Tabs.
-    // Move the same URL into the full Chrome app, where PWA installation is supported.
-    if(isAndroid&&!new URL(location.href).searchParams.has("install")){
-      installBtn.textContent="Apro Chrome…";
-      openFullChrome();
-      return;
-    }
+    installBtn.disabled=true;
+    installBtn.textContent="Installazione…";
 
-    let manifestOK=false;
     try{
-      const m=await fetch("./manifest.webmanifest",{cache:"no-store"});
-      manifestOK=m.ok;
-    }catch(_){}
+      await promptEvent.prompt();
+      const choice=await promptEvent.userChoice;
 
-    const swSupported="serviceWorker" in navigator;
-    const swReady=!!registration;
-    const controlled=!!navigator.serviceWorker?.controller;
-    const https=location.protocol==="https:";
+      deferredInstallPrompt=null;
+      window.__installPrompt=null;
 
-    alert(
-      "La PWA è pronta, ma Chrome non ha ancora esposto il prompt automatico.\n\n"+
-      `HTTPS: ${https?"OK":"NO"}\n`+
-      `Manifest: ${manifestOK?"OK":"NO"}\n`+
-      `Service worker: ${swSupported&&swReady?"OK":"NO"}\n`+
-      `Offline: ${controlled?"OK":"in attivazione"}\n\n`+
-      "Nel Chrome completo apri ⋮ → Installa app oppure Aggiungi alla schermata Home."
-    );
+      if(choice?.outcome==="accepted"){
+        installBtn.textContent="Installazione…";
+
+        // If Android aborts the WebAPK install silently, allow another attempt
+        // instead of leaving the UI permanently stuck.
+        setTimeout(()=>{
+          if(!isStandalone()&&!installBtn.hidden){
+            installBtn.disabled=false;
+            installBtn.textContent="Riprova installazione";
+          }
+        },15000);
+      }else{
+        installBtn.disabled=false;
+        installBtn.textContent="Installa";
+      }
+    }catch(err){
+      console.error("PWA install failed",err);
+      installBtn.disabled=false;
+      installBtn.textContent="Riprova installazione";
+    }
   });
-
 }
+
 $("reloadApp").addEventListener("click",()=>location.reload());
 
 const pwaSetupPromise=setupPWA();
