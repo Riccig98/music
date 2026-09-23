@@ -3,22 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Chord Ear Trainer</title>
-<link rel="manifest" href="./manifest.json">
-<link rel="stylesheet" href="./styles.css?v=21">
+<title>ChordLab</title>
+<link rel="canonical" href="https://riccig98.github.io/music/">
+<link rel="manifest" href="/music/manifest.webmanifest">
+<link rel="stylesheet" href="./styles.css?v=22">
 <meta name="theme-color" content="#0b0e13">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="./icons/icon-192.png">
-<script>
-window.__installPrompt = null;
-window.addEventListener("beforeinstallprompt", function (event) {
-  event.preventDefault();
-  window.__installPrompt = event;
-  window.dispatchEvent(new Event("pwa-install-ready"));
-});
-</script>
 </head>
 <body>
 <main>
@@ -29,7 +22,7 @@ window.addEventListener("beforeinstallprompt", function (event) {
 
   <div class="topbar">
     <button id="homeBtn" class="iconbtn" type="button" hidden>←</button>
-    <div class="brand">Chord Ear Trainer</div>
+    <div class="brand">ChordLab</div>
     <div class="spacer"></div>
     <button id="installBtn" type="button" hidden>Installa</button>
   </div>
@@ -248,6 +241,6 @@ window.addEventListener("beforeinstallprompt", function (event) {
     </div>
   </section>
 </main>
-<script type="module" src="./app.js?v=21"></script>
+<script type="module" src="./app.js?v=22"></script>
 </body>
 </html>
