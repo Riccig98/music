@@ -32,3 +32,109 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  diagnose-pwa:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for the deployed version
+        shell: bash
+        run: |
+          for i in {1..40}; do
+            body="$(curl -fsSL --max-time 10 https://riccig98.github.io/music/ || true)"
+            if echo "$body" | grep -q "ChordLab"; then
+              echo "Fresh ChordLab deployment is live."
+              exit 0
+            fi
+            echo "Waiting for Pages propagation ($i/40)..."
+            sleep 3
+          done
+          echo "Fresh deployment was not visible in time."
+          exit 1
+
+      - name: Install Chrome diagnostic client
+        run: npm install chrome-remote-interface@0.33.3
+
+      - name: Diagnose Chromium PWA installability
+        shell: bash
+        run: |
+          cat > /tmp/pwa-diagnose.js <<'NODE'
+          const CDP = require('chrome-remote-interface');
+          const {spawn} = require('child_process');
+
+          const url = 'https://riccig98.github.io/music/?diagnose=1';
+          const chrome = spawn('google-chrome', [
+            '--headless=new',
+            '--no-sandbox',
+            '--disable-gpu',
+            '--disable-dev-shm-usage',
+            '--remote-debugging-port=9222',
+            '--user-data-dir=/tmp/chrome-pwa-diagnostic',
+            'about:blank'
+          ], {stdio: ['ignore','inherit','inherit']});
+
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+          (async () => {
+            try {
+              await sleep(2500);
+              const client = await CDP({port: 9222});
+              const {Page, Runtime} = client;
+              await Promise.all([Page.enable(), Runtime.enable()]);
+
+              const loaded = new Promise(resolve => Page.loadEventFired(resolve));
+              await Page.navigate({url});
+              await loaded;
+              await sleep(5000);
+
+              const manifest = await Page.getAppManifest();
+              const installability = await Page.getInstallabilityErrors();
+
+              const runtime = await Runtime.evaluate({
+                expression: `
+                  (async () => {
+                    const reg = await navigator.serviceWorker.getRegistration('/music/');
+                    const manifestResponse = await fetch('/music/manifest.webmanifest', {cache:'no-store'});
+                    const manifestText = await manifestResponse.text();
+                    return {
+                      href: location.href,
+                      title: document.title,
+                      controller: !!navigator.serviceWorker.controller,
+                      swScope: reg ? reg.scope : null,
+                      swInstalling: reg && reg.installing ? reg.installing.state : null,
+                      swWaiting: reg && reg.waiting ? reg.waiting.state : null,
+                      swActive: reg && reg.active ? reg.active.state : null,
+                      manifestStatus: manifestResponse.status,
+                      manifestType: manifestResponse.headers.get('content-type'),
+                      manifestText,
+                      displayModeStandalone: matchMedia('(display-mode: standalone)').matches
+                    };
+                  })()
+                `,
+                awaitPromise: true,
+                returnByValue: true
+              });
+
+              console.log('=== APP MANIFEST ===');
+              console.log(JSON.stringify(manifest, null, 2));
+              console.log('=== INSTALLABILITY ERRORS ===');
+              console.log(JSON.stringify(installability, null, 2));
+              console.log('=== RUNTIME STATE ===');
+              console.log(JSON.stringify(runtime.result.value, null, 2));
+
+              await client.close();
+
+              if (installability.installabilityErrors && installability.installabilityErrors.length) {
+                process.exitCode = 2;
+              }
+            } catch (err) {
+              console.error('PWA DIAGNOSTIC FAILED');
+              console.error(err && err.stack ? err.stack : err);
+              process.exitCode = 1;
+            } finally {
+              chrome.kill('SIGKILL');
+            }
+          })();
+          NODE
+
+          node /tmp/pwa-diagnose.js
