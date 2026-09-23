@@ -1,50 +1,46 @@
-const CACHE="chord-ear-trainer-v21";
-const SHELL=[
-  "/music/",
-  "/music/index.html",
-  "/music/styles.css",
-  "/music/app.js",
-  "/music/db.js",
-  "/music/manifest.json",
-  "/music/icons/icon-192.png",
-  "/music/icons/icon-512.png"
+var GHPATH = "/music";
+var APP_PREFIX = "chordlab_";
+var VERSION = "version_001";
+var URLS = [
+  GHPATH + "/",
+  GHPATH + "/index.html",
+  GHPATH + "/styles.css",
+  GHPATH + "/app.js",
+  GHPATH + "/db.js",
+  GHPATH + "/icons/icon-512.png"
 ];
 
-self.addEventListener("install",event=>{
-  event.waitUntil(
-    caches.open(CACHE).then(cache=>cache.addAll(SHELL))
-  );
-  self.skipWaiting();
-});
+var CACHE_NAME = APP_PREFIX + VERSION;
 
-self.addEventListener("activate",event=>{
-  event.waitUntil(
-    caches.keys().then(keys=>
-      Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))
-    )
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("fetch",event=>{
-  if(event.request.method!=="GET")return;
-
-  if(event.request.mode==="navigate"){
-    event.respondWith(
-      fetch(event.request).catch(()=>caches.match("/music/index.html"))
-    );
-    return;
-  }
-
+self.addEventListener("fetch",function(event){
   event.respondWith(
-    caches.match(event.request).then(cached=>
-      cached||fetch(event.request).then(response=>{
-        if(response&&response.ok&&new URL(event.request.url).origin===self.location.origin){
-          const copy=response.clone();
-          caches.open(CACHE).then(cache=>cache.put(event.request,copy));
+    caches.match(event.request).then(function(request){
+      return request || fetch(event.request);
+    })
+  );
+});
+
+self.addEventListener("install",function(event){
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(function(cache){
+      return cache.addAll(URLS);
+    })
+  );
+});
+
+self.addEventListener("activate",function(event){
+  event.waitUntil(
+    caches.keys().then(function(keyList){
+      var cacheWhitelist=keyList.filter(function(key){
+        return key.indexOf(APP_PREFIX)===0;
+      });
+      cacheWhitelist.push(CACHE_NAME);
+
+      return Promise.all(keyList.map(function(key){
+        if(cacheWhitelist.indexOf(key)===-1){
+          return caches.delete(key);
         }
-        return response;
-      })
-    )
+      }));
+    })
   );
 });
