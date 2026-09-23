@@ -1,14 +1,13 @@
 var GHPATH = "/music";
 var APP_PREFIX = "chordlab_";
-var VERSION = "version_002";
+var VERSION = "version_003";
 var URLS = [
   GHPATH + "/",
   GHPATH + "/index.html",
   GHPATH + "/styles.css",
   GHPATH + "/app.js",
   GHPATH + "/db.js",
-  GHPATH + "/icons/icon-192.png",
-  GHPATH + "/icons/icon-512.png"
+  GHPATH + "/icons/icon-700.png"
 ];
 
 var CACHE_NAME = APP_PREFIX + VERSION;
@@ -36,7 +35,6 @@ self.addEventListener("activate",function(event){
         return key.indexOf(APP_PREFIX)===0;
       });
       cacheWhitelist.push(CACHE_NAME);
-
       return Promise.all(keyList.map(function(key){
         if(cacheWhitelist.indexOf(key)===-1){
           return caches.delete(key);
