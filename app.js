@@ -69,25 +69,17 @@ const favoritesSection=$("favoritesSection");
 const favoritesList=$("favoritesList");
 const favoritesCount=$("favoritesCount");
 
-let deferredInstallPrompt=window.__installPrompt||null;
-
-window.addEventListener("pwa-install-ready",()=>{
-  deferredInstallPrompt=window.__installPrompt||null;
-  installBtn.hidden=false;
-  installBtn.textContent="Installa";
-});
+let deferredInstallPrompt=null;
 
 window.addEventListener("beforeinstallprompt",event=>{
   event.preventDefault();
   deferredInstallPrompt=event;
-  window.__installPrompt=event;
   installBtn.hidden=false;
   installBtn.textContent="Installa";
 });
 
 window.addEventListener("appinstalled",()=>{
   deferredInstallPrompt=null;
-  window.__installPrompt=null;
   installBtn.hidden=true;
 });
 
@@ -1047,30 +1039,19 @@ $("clearHistory").addEventListener("click",async()=>{
 async function setupPWA(){
   const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
 
+  if("serviceWorker" in navigator){
+    try{
+      await navigator.serviceWorker.register("/music/sw.js",{scope:"/music/"});
+    }catch(err){
+      console.error("Service worker registration failed",err);
+    }
+  }
+
   if(isStandalone()){
     installBtn.hidden=true;
   }else{
     installBtn.hidden=false;
     installBtn.textContent="Installa";
-  }
-
-  if("serviceWorker" in navigator&&location.protocol==="https:"){
-    try{
-      const registration=await navigator.serviceWorker.register("/music/sw.js",{scope:"/music/"});
-      await navigator.serviceWorker.ready;
-
-      registration.addEventListener("updatefound",()=>{
-        const worker=registration.installing;
-        if(!worker)return;
-        worker.addEventListener("statechange",()=>{
-          if(worker.state==="installed"&&navigator.serviceWorker.controller){
-            $("updateBanner").hidden=false;
-          }
-        });
-      });
-    }catch(err){
-      console.error("Service worker registration failed",err);
-    }
   }
 
   installBtn.addEventListener("click",async()=>{
@@ -1079,41 +1060,24 @@ async function setupPWA(){
       return;
     }
 
-    const promptEvent=deferredInstallPrompt||window.__installPrompt;
-    if(!promptEvent){
-      alert("Chrome non ha ancora reso disponibile il prompt. Ricarica questa pagina nel Chrome completo e riprova.");
+    if(!deferredInstallPrompt){
+      alert("Apri il menu ⋮ di Chrome e scegli “Installa app”.");
       return;
     }
 
-    installBtn.disabled=true;
-    installBtn.textContent="Installazione…";
-
     try{
-      await promptEvent.prompt();
-      const choice=await promptEvent.userChoice;
-
+      deferredInstallPrompt.prompt();
+      const choice=await deferredInstallPrompt.userChoice;
       deferredInstallPrompt=null;
-      window.__installPrompt=null;
 
       if(choice?.outcome==="accepted"){
         installBtn.textContent="Installazione…";
-
-        // If Android aborts the WebAPK install silently, allow another attempt
-        // instead of leaving the UI permanently stuck.
-        setTimeout(()=>{
-          if(!isStandalone()&&!installBtn.hidden){
-            installBtn.disabled=false;
-            installBtn.textContent="Riprova installazione";
-          }
-        },15000);
       }else{
-        installBtn.disabled=false;
         installBtn.textContent="Installa";
       }
     }catch(err){
-      console.error("PWA install failed",err);
-      installBtn.disabled=false;
-      installBtn.textContent="Riprova installazione";
+      console.error(err);
+      installBtn.textContent="Installa";
     }
   });
 }
