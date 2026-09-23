@@ -1,12 +1,13 @@
 var GHPATH = "/music";
 var APP_PREFIX = "chordlab_";
-var VERSION = "version_001";
+var VERSION = "version_002";
 var URLS = [
   GHPATH + "/",
   GHPATH + "/index.html",
   GHPATH + "/styles.css",
   GHPATH + "/app.js",
   GHPATH + "/db.js",
+  GHPATH + "/icons/icon-192.png",
   GHPATH + "/icons/icon-512.png"
 ];
 
