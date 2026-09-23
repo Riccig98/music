@@ -58,7 +58,7 @@ jobs:
       - name: Diagnose Chromium PWA installability
         shell: bash
         run: |
-          cat > /tmp/pwa-diagnose.js <<'NODE'
+          cat > pwa-diagnose.cjs <<'NODE'
           const CDP = require('chrome-remote-interface');
           const {spawn} = require('child_process');
 
@@ -137,4 +137,4 @@ jobs:
           })();
           NODE
 
-          node /tmp/pwa-diagnose.js
+          node pwa-diagnose.cjs
