@@ -4,14 +4,22 @@
   "description": "Allenamento uditivo per note, accordi e voicing.",
   "scope": "/music/",
   "start_url": "/music/",
+  "display": "standalone",
   "background_color": "#0b0e13",
   "theme_color": "#0b0e13",
-  "display": "standalone",
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/music/icons/icon-700.png",
+      "src": "/music/icons/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "700x700"
+      "purpose": "any"
+    },
+    {
+      "src": "/music/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
