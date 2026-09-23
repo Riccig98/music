@@ -1,23 +1,17 @@
 {
-  "id": "/music/",
-  "name": "Chord Ear Trainer",
-  "short_name": "Ear Trainer",
-  "description": "Allenamento uditivo per note e accordi con storico e statistiche.",
-  "lang": "it",
-  "dir": "ltr",
-  "start_url": "/music/",
+  "name": "ChordLab",
+  "short_name": "ChordLab",
+  "description": "Allenamento uditivo per note, accordi e voicing.",
   "scope": "/music/",
-  "display": "standalone",
-  "display_override": ["standalone"],
-  "orientation": "landscape",
+  "start_url": "/music/",
   "background_color": "#0b0e13",
   "theme_color": "#0b0e13",
-  "prefer_related_applications": false,
-  "categories": ["education", "music"],
+  "display": "standalone",
   "icons": [
-    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
-    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
-    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"maskable"},
-    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+    {
+      "src": "/music/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
   ]
 }
