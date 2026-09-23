@@ -1037,21 +1037,41 @@ $("clearHistory").addEventListener("click",async()=>{
 
 /* ---------- PWA / updates ---------- */
 async function setupPWA(){
-  const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+  if(window.__PWA_RESETTING__)return;
 
-  if("serviceWorker" in navigator){
-    try{
-      await navigator.serviceWorker.register("/music/sw.js",{scope:"/music/"});
-    }catch(err){
-      console.error("Service worker registration failed",err);
-    }
-  }
+  const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
 
   if(isStandalone()){
     installBtn.hidden=true;
   }else{
     installBtn.hidden=false;
     installBtn.textContent="Installa";
+  }
+
+  if("serviceWorker" in navigator){
+    try{
+      let reloadedForController=false;
+      navigator.serviceWorker.addEventListener("controllerchange",()=>{
+        if(reloadedForController)return;
+        reloadedForController=true;
+        if(!sessionStorage.getItem("cet-sw25-reloaded")){
+          sessionStorage.setItem("cet-sw25-reloaded","1");
+          location.reload();
+        }
+      });
+
+      const registration=await navigator.serviceWorker.register(
+        "/music/sw.js?v=25",
+        {scope:"/music/",updateViaCache:"none"}
+      );
+      await registration.update();
+
+      if(registration.waiting){
+        registration.waiting.postMessage({type:"SKIP_WAITING"});
+      }
+    }catch(err){
+      console.error("Service worker registration failed",err);
+    }
   }
 
   installBtn.addEventListener("click",async()=>{
@@ -1069,14 +1089,9 @@ async function setupPWA(){
       deferredInstallPrompt.prompt();
       const choice=await deferredInstallPrompt.userChoice;
       deferredInstallPrompt=null;
-
-      if(choice?.outcome==="accepted"){
-        installBtn.textContent="Installazione…";
-      }else{
-        installBtn.textContent="Installa";
-      }
+      installBtn.textContent=choice?.outcome==="accepted"?"Installazione…":"Installa";
     }catch(err){
-      console.error(err);
+      console.error("Install prompt failed",err);
       installBtn.textContent="Installa";
     }
   });
