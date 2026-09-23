@@ -7,19 +7,11 @@
   "background_color": "#0b0e13",
   "theme_color": "#0b0e13",
   "display": "standalone",
-  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/music/icons/icon-192.png",
+      "src": "/music/icons/icon-700.png",
       "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any"
-    },
-    {
-      "src": "/music/icons/icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any"
+      "sizes": "700x700"
     }
   ]
 }
