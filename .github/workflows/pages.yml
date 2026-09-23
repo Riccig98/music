@@ -52,67 +52,52 @@ jobs:
           echo "Fresh deployment was not visible in time."
           exit 1
 
-      - name: Install Chrome diagnostic client
-        run: npm install chrome-remote-interface@0.33.3
+      - name: Install Chromium diagnostic client
+        run: npm install puppeteer@24.16.0
 
       - name: Diagnose Chromium PWA installability
         shell: bash
         run: |
           cat > pwa-diagnose.cjs <<'NODE'
-          const CDP = require('chrome-remote-interface');
-          const {spawn} = require('child_process');
+          const puppeteer = require('puppeteer');
 
           const url = 'https://riccig98.github.io/music/?diagnose=1';
-          const chrome = spawn('google-chrome', [
-            '--headless=new',
-            '--no-sandbox',
-            '--disable-gpu',
-            '--disable-dev-shm-usage',
-            '--remote-debugging-port=9222',
-            '--user-data-dir=/tmp/chrome-pwa-diagnostic',
-            'about:blank'
-          ], {stdio: ['ignore','inherit','inherit']});
-
-          const sleep = ms => new Promise(r => setTimeout(r, ms));
 
           (async () => {
+            let browser;
             try {
-              await sleep(2500);
-              const client = await CDP({port: 9222});
-              const {Page, Runtime} = client;
-              await Promise.all([Page.enable(), Runtime.enable()]);
+              browser = await puppeteer.launch({
+                headless: true,
+                args: ['--no-sandbox','--disable-dev-shm-usage']
+              });
 
-              const loaded = new Promise(resolve => Page.loadEventFired(resolve));
-              await Page.navigate({url});
-              await loaded;
-              await sleep(5000);
+              const page = await browser.newPage();
+              await page.goto(url, {waitUntil: 'networkidle2', timeout: 60000});
+              await new Promise(r => setTimeout(r, 4000));
 
-              const manifest = await Page.getAppManifest();
-              const installability = await Page.getInstallabilityErrors();
+              const client = await page.createCDPSession();
+              await client.send('Page.enable');
 
-              const runtime = await Runtime.evaluate({
-                expression: `
-                  (async () => {
-                    const reg = await navigator.serviceWorker.getRegistration('/music/');
-                    const manifestResponse = await fetch('/music/manifest.webmanifest', {cache:'no-store'});
-                    const manifestText = await manifestResponse.text();
-                    return {
-                      href: location.href,
-                      title: document.title,
-                      controller: !!navigator.serviceWorker.controller,
-                      swScope: reg ? reg.scope : null,
-                      swInstalling: reg && reg.installing ? reg.installing.state : null,
-                      swWaiting: reg && reg.waiting ? reg.waiting.state : null,
-                      swActive: reg && reg.active ? reg.active.state : null,
-                      manifestStatus: manifestResponse.status,
-                      manifestType: manifestResponse.headers.get('content-type'),
-                      manifestText,
-                      displayModeStandalone: matchMedia('(display-mode: standalone)').matches
-                    };
-                  })()
-                `,
-                awaitPromise: true,
-                returnByValue: true
+              const manifest = await client.send('Page.getAppManifest');
+              const installability = await client.send('Page.getInstallabilityErrors');
+
+              const runtime = await page.evaluate(async () => {
+                const reg = await navigator.serviceWorker.getRegistration('/music/');
+                const manifestResponse = await fetch('/music/manifest.webmanifest', {cache:'no-store'});
+                const manifestText = await manifestResponse.text();
+                return {
+                  href: location.href,
+                  title: document.title,
+                  controller: !!navigator.serviceWorker.controller,
+                  swScope: reg ? reg.scope : null,
+                  swInstalling: reg && reg.installing ? reg.installing.state : null,
+                  swWaiting: reg && reg.waiting ? reg.waiting.state : null,
+                  swActive: reg && reg.active ? reg.active.state : null,
+                  manifestStatus: manifestResponse.status,
+                  manifestType: manifestResponse.headers.get('content-type'),
+                  manifestText,
+                  displayModeStandalone: matchMedia('(display-mode: standalone)').matches
+                };
               });
 
               console.log('=== APP MANIFEST ===');
@@ -120,9 +105,7 @@ jobs:
               console.log('=== INSTALLABILITY ERRORS ===');
               console.log(JSON.stringify(installability, null, 2));
               console.log('=== RUNTIME STATE ===');
-              console.log(JSON.stringify(runtime.result.value, null, 2));
-
-              await client.close();
+              console.log(JSON.stringify(runtime, null, 2));
 
               if (installability.installabilityErrors && installability.installabilityErrors.length) {
                 process.exitCode = 2;
@@ -132,7 +115,7 @@ jobs:
               console.error(err && err.stack ? err.stack : err);
               process.exitCode = 1;
             } finally {
-              chrome.kill('SIGKILL');
+              if (browser) await browser.close();
             }
           })();
           NODE
