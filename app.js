@@ -45,6 +45,7 @@ const modeOption=$("modeOption");
 const trainingMethod=$("trainingMethod");
 const timbre=$("timbre");
 const playBtn=$("playBtn");
+const repeatBtn=$("repeatBtn");
 const nextBtn=$("nextBtn");
 const settingsBtn=$("settingsBtn");
 const settingsPanel=$("settingsPanel");
@@ -660,7 +661,7 @@ function resetAttemptState(){
   startedAt=Date.now();firstSoundAt=0;firstResponseMs=null;firstAttemptCorrect=null;
   replayCount=0;hasPlayed=false;savedCurrent=false;
   keys.forEach(k=>k.classList.remove("correct","wrong"));
-  status.textContent="";status.className="status";answer.textContent="";nextBtn.disabled=true;
+  status.textContent="";status.className="status";answer.textContent="";nextBtn.disabled=true;repeatBtn.disabled=true;
 }
 function nextChallenge(autoPlay=false){
   if(typeof stopHeldListen==="function")stopHeldListen();
@@ -677,6 +678,7 @@ function playChallenge(userInitiated=true){
   ensureAudio();
   if(hasPlayed&&userInitiated)replayCount++;
   if(!hasPlayed){hasPlayed=true;firstSoundAt=Date.now()}
+  repeatBtn.disabled=false;
   challenge.midis.forEach(m=>playMidi(m,0,false));
 }
 
@@ -730,6 +732,7 @@ playBtn.addEventListener("click",event=>{
 });
 
 playBtn.addEventListener("contextmenu",event=>event.preventDefault());
+repeatBtn.addEventListener("click",()=>{if(hasPlayed)playChallenge(true)});
 nextBtn.addEventListener("click",()=>nextChallenge(true));
 
 function markFirstResponse(correct){
@@ -743,7 +746,9 @@ function updateProgress(){
   if(appMode==="chords"&&chordTask==="identify"){
     progress.textContent="Riconosci fondamentale e qualità";
   }else{
-    progress.textContent=`${found.size} di ${challenge?challenge.pcs.length:0} note riconosciute`;
+    const total=challenge?challenge.pcs.length:0;
+    progress.textContent=`${found.size} / ${total}`;
+    progress.setAttribute("aria-label",`${found.size} note riconosciute su ${total}`);
   }
 }
 async function saveCompleted(){
@@ -1054,14 +1059,14 @@ async function setupPWA(){
       navigator.serviceWorker.addEventListener("controllerchange",()=>{
         if(reloadedForController)return;
         reloadedForController=true;
-        if(!sessionStorage.getItem("cet-sw25-reloaded")){
-          sessionStorage.setItem("cet-sw25-reloaded","1");
+        if(!sessionStorage.getItem("cet-sw26-reloaded")){
+          sessionStorage.setItem("cet-sw26-reloaded","1");
           location.reload();
         }
       });
 
       const registration=await navigator.serviceWorker.register(
-        "/music/sw.js?v=25",
+        "/music/sw.js?v=26",
         {scope:"/music/",updateViaCache:"none"}
       );
       await registration.update();
