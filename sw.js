@@ -1,4 +1,4 @@
-const CACHE="chordlab-v25";
+const CACHE="chordlab-v26";
 const SCOPE_PATH="/music/";
 
 self.addEventListener("install",event=>{
@@ -6,8 +6,8 @@ self.addEventListener("install",event=>{
   event.waitUntil(
     caches.open(CACHE).then(cache=>cache.addAll([
       "/music/index.html",
-      "/music/styles.css?v=25",
-      "/music/app.js?v=25",
+      "/music/styles.css?v=26",
+      "/music/app.js?v=26",
       "/music/db.js",
       "/music/manifest.webmanifest",
       "/music/icons/icon-192.png",
@@ -32,7 +32,7 @@ self.addEventListener("activate",event=>{
         const url=new URL(client.url);
         if(url.origin===self.location.origin&&url.pathname.startsWith(SCOPE_PATH)){
           if(!url.searchParams.has("fresh")){
-            url.searchParams.set("fresh","25");
+            url.searchParams.set("fresh","26");
             await client.navigate(url.href);
           }
         }
