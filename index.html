@@ -7,12 +7,12 @@
 <link rel="canonical" href="https://riccig98.github.io/music/">
 <link rel="icon" type="image/png" sizes="192x192" href="/music/icons/icon-192.png">
 <link rel="manifest" href="/music/manifest.webmanifest">
-<link rel="stylesheet" href="./styles.css?v=25">
+<link rel="stylesheet" href="./styles.css?v=26">
 <meta name="theme-color" content="#0b0e13">
 <script>
 (function(){
   const params=new URLSearchParams(location.search);
-  if(params.get("pwa-reset")!=="25") return;
+  if(params.get("pwa-reset")!=="26") return;
 
   window.__PWA_RESETTING__=true;
   document.documentElement.style.background="#0b0e13";
@@ -30,7 +30,7 @@
       ? caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key))))
       : Promise.resolve())
   ]).finally(()=>{
-    location.replace("/music/?fresh=25");
+    location.replace("/music/?fresh=26");
   });
 })();
 </script>
@@ -188,9 +188,22 @@
           <button id="confirmChord" class="primary confirm-answer" type="button">Conferma risposta</button>
         </div>
 
-        <div class="bottom-actions">
-          <button id="nextBtn" class="next-button" type="button" disabled><span>Avanti</span><span class="action-icon">→</span></button>
-          <button id="playBtn" class="listen-button" type="button"><span class="action-icon">▶</span><span>Ascolta</span></button>
+        <div class="bottom-actions" aria-label="Controlli ascolto">
+          <button id="playBtn" class="listen-button" type="button">
+            <span class="control-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false"><path d="M8 5v14l11-7z"/></svg>
+            </span>
+            <span>Ascolta</span>
+          </button>
+          <button id="repeatBtn" class="repeat-button" type="button" disabled>
+            <span class="control-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false"><path d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.8-4.3L13 11h8V3l-3.3 3.3z"/></svg>
+            </span>
+            <span>Ripeti</span>
+          </button>
+          <button id="nextBtn" class="next-button" type="button" disabled>
+            <span>Avanti</span><span class="action-icon" aria-hidden="true">→</span>
+          </button>
         </div>
       </div>
     </div>
@@ -263,6 +276,6 @@
     </div>
   </section>
 </main>
-<script type="module" src="./app.js?v=25"></script>
+<script type="module" src="./app.js?v=26"></script>
 </body>
 </html>
