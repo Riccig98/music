@@ -905,3 +905,203 @@ html,body{
     gap:6px;
   }
 }
+
+
+/* v27: keyboard-first landscape layout */
+@media(orientation:landscape){
+  /* The exercise opens on the piano first. Everything else follows below. */
+  #trainerScreen.active .trainer-shell{
+    display:flex!important;
+    flex-direction:column!important;
+    padding:5px!important;
+    gap:0!important;
+  }
+
+  #trainerScreen .trainer-main{
+    order:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    width:100%!important;
+    gap:7px!important;
+  }
+
+  #trainerScreen #keyboardWrap{
+    order:0!important;
+    width:100%!important;
+    margin:0!important;
+    padding:5px!important;
+    align-self:stretch!important;
+    border-radius:14px!important;
+  }
+
+  #trainerScreen .trainer-main .keyboard{
+    width:100%!important;
+    height:clamp(230px,58svh,430px)!important;
+  }
+
+  #trainerScreen .bottom-actions{
+    order:1!important;
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    grid-template-rows:auto auto!important;
+    width:100%!important;
+    margin:0!important;
+    gap:7px!important;
+  }
+
+  #trainerScreen .bottom-actions > #playBtn,
+  #trainerScreen .bottom-actions > #repeatBtn{
+    grid-row:1!important;
+    min-height:54px!important;
+    width:100%!important;
+    margin:0!important;
+    border-radius:13px!important;
+  }
+
+  #trainerScreen .bottom-actions > #playBtn{
+    grid-column:1!important;
+  }
+
+  #trainerScreen .bottom-actions > #repeatBtn{
+    grid-column:2!important;
+    display:flex!important;
+  }
+
+  #trainerScreen .bottom-actions > #nextBtn{
+    grid-column:1 / -1!important;
+    grid-row:2!important;
+    min-height:42px!important;
+    width:100%!important;
+    margin:0!important;
+  }
+
+  #trainerScreen .bottom-actions > #nextBtn:disabled{
+    display:none!important;
+  }
+
+  #trainerScreen .bottom-actions > #nextBtn:not(:disabled){
+    display:flex!important;
+  }
+
+  #trainerScreen .trainer-main > .exercise-feedback{
+    order:2!important;
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr)!important;
+    grid-template-rows:auto auto!important;
+    column-gap:14px!important;
+    row-gap:3px!important;
+    width:100%!important;
+    min-height:70px!important;
+    margin:0!important;
+    padding:9px 13px!important;
+    align-items:center!important;
+    text-align:left!important;
+    border-radius:13px!important;
+  }
+
+  #trainerScreen .trainer-main > .exercise-feedback::before{
+    content:"NOTE CORRETTE";
+    grid-column:1!important;
+    grid-row:1!important;
+    align-self:end!important;
+    margin:0!important;
+    font-size:8px!important;
+    font-weight:900!important;
+    letter-spacing:.11em!important;
+    color:#8e9aba!important;
+  }
+
+  #trainerScreen .exercise-feedback .progress{
+    grid-column:1!important;
+    grid-row:2!important;
+    align-self:start!important;
+    color:#fff!important;
+    font-size:26px!important;
+    font-weight:950!important;
+    line-height:1!important;
+    letter-spacing:-.04em!important;
+  }
+
+  #trainerScreen .exercise-feedback .status{
+    grid-column:2!important;
+    grid-row:1!important;
+    align-self:end!important;
+    min-height:0!important;
+    margin:0!important;
+    font-size:11px!important;
+    line-height:1.2!important;
+  }
+
+  #trainerScreen .exercise-feedback .answer{
+    grid-column:2!important;
+    grid-row:2!important;
+    align-self:start!important;
+    margin:0!important;
+    font-size:9px!important;
+    line-height:1.25!important;
+    overflow-wrap:anywhere!important;
+  }
+
+  /* Title and save control are intentionally below the exercise. */
+  #trainerScreen .trainer-head{
+    order:1!important;
+    min-height:34px!important;
+    margin:9px 2px 5px!important;
+    padding:0 2px!important;
+  }
+
+  #trainerScreen .trainer-heading .mode-title{
+    font-size:16px!important;
+  }
+
+  #trainerScreen .trainer-heading .sub{
+    display:none!important;
+  }
+
+  #trainerScreen #settingsBtn{
+    display:none!important;
+  }
+
+  #trainerScreen #settingsPanel,
+  #trainerScreen #settingsPanel[hidden]{
+    order:2!important;
+    position:static!important;
+    display:grid!important;
+    width:100%!important;
+    max-height:none!important;
+    overflow:visible!important;
+    margin:0 0 4px!important;
+  }
+}
+
+@media(orientation:landscape) and (max-height:430px){
+  #trainerScreen .trainer-main .keyboard{
+    height:clamp(210px,56svh,300px)!important;
+  }
+
+  #trainerScreen .bottom-actions > #playBtn,
+  #trainerScreen .bottom-actions > #repeatBtn{
+    min-height:48px!important;
+    font-size:12px!important;
+  }
+
+  #trainerScreen .trainer-main > .exercise-feedback{
+    min-height:62px!important;
+    padding:7px 11px!important;
+  }
+}
+
+@media(orientation:landscape) and (max-width:760px){
+  #trainerScreen .trainer-main{
+    gap:6px!important;
+  }
+
+  #trainerScreen .trainer-main .keyboard{
+    height:clamp(215px,57svh,340px)!important;
+  }
+
+  #trainerScreen #settingsPanel,
+  #trainerScreen #settingsPanel[hidden]{
+    margin-top:0!important;
+  }
+}
