@@ -1059,14 +1059,14 @@ async function setupPWA(){
       navigator.serviceWorker.addEventListener("controllerchange",()=>{
         if(reloadedForController)return;
         reloadedForController=true;
-        if(!sessionStorage.getItem("cet-sw26-reloaded")){
-          sessionStorage.setItem("cet-sw26-reloaded","1");
+        if(!sessionStorage.getItem("cet-sw27-reloaded")){
+          sessionStorage.setItem("cet-sw27-reloaded","1");
           location.reload();
         }
       });
 
       const registration=await navigator.serviceWorker.register(
-        "/music/sw.js?v=26",
+        "/music/sw.js?v=27",
         {scope:"/music/",updateViaCache:"none"}
       );
       await registration.update();
