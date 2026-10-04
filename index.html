@@ -7,12 +7,12 @@
 <link rel="canonical" href="https://riccig98.github.io/music/">
 <link rel="icon" type="image/png" sizes="192x192" href="/music/icons/icon-192.png">
 <link rel="manifest" href="/music/manifest.webmanifest">
-<link rel="stylesheet" href="./styles.css?v=27">
+<link rel="stylesheet" href="./styles.css?v=28">
 <meta name="theme-color" content="#0b0e13">
 <script>
 (function(){
   const params=new URLSearchParams(location.search);
-  if(params.get("pwa-reset")!=="27") return;
+  if(params.get("pwa-reset")!=="28") return;
 
   window.__PWA_RESETTING__=true;
   document.documentElement.style.background="#0b0e13";
@@ -30,7 +30,7 @@
       ? caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key))))
       : Promise.resolve())
   ]).finally(()=>{
-    location.replace("/music/?fresh=27");
+    location.replace("/music/?fresh=28");
   });
 })();
 </script>
@@ -276,6 +276,6 @@
     </div>
   </section>
 </main>
-<script type="module" src="./app.js?v=27"></script>
+<script type="module" src="./app.js?v=28"></script>
 </body>
 </html>
