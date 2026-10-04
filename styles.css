@@ -1105,3 +1105,128 @@ html,body{
     margin-top:0!important;
   }
 }
+
+
+/* v28: full-bleed landscape trainer with bottom back control */
+@media(orientation:landscape){
+  /* Remove the header from the trainer viewport so the piano starts immediately. */
+  main:has(#trainerScreen.active){
+    padding-top:max(3px,env(safe-area-inset-top))!important;
+  }
+
+  main:has(#trainerScreen.active) .topbar{
+    position:relative!important;
+    height:0!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+    pointer-events:none;
+    z-index:80;
+  }
+
+  main:has(#trainerScreen.active) .topbar .brand,
+  main:has(#trainerScreen.active) .topbar .spacer,
+  main:has(#trainerScreen.active) .topbar #installBtn{
+    display:none!important;
+  }
+
+  /* Back becomes a compact floating control at the bottom-left. */
+  main:has(#trainerScreen.active) #homeBtn:not([hidden]){
+    position:fixed!important;
+    left:max(12px,env(safe-area-inset-left))!important;
+    bottom:max(12px,env(safe-area-inset-bottom))!important;
+    z-index:120!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:7px!important;
+    width:auto!important;
+    min-width:92px!important;
+    min-height:44px!important;
+    padding:8px 13px!important;
+    border-radius:999px!important;
+    border:1px solid rgba(155,166,218,.25)!important;
+    background:rgba(14,20,38,.92)!important;
+    color:#f7f8ff!important;
+    font-size:12px!important;
+    font-weight:850!important;
+    box-shadow:0 10px 28px rgba(0,0,0,.34)!important;
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    pointer-events:auto!important;
+  }
+
+  main:has(#trainerScreen.active) #homeBtn::after{
+    content:"Indietro";
+  }
+
+  #trainerScreen.active{
+    margin:0!important;
+  }
+
+  #trainerScreen.active .trainer-shell{
+    border-radius:13px!important;
+    padding:5px!important;
+  }
+
+  #trainerScreen .trainer-main{
+    gap:6px!important;
+  }
+
+  #trainerScreen #keyboardWrap{
+    padding:4px!important;
+    border-radius:13px!important;
+  }
+
+  #trainerScreen .trainer-main .keyboard{
+    height:clamp(250px,62svh,460px)!important;
+  }
+
+  #trainerScreen .bottom-actions{
+    gap:6px!important;
+  }
+
+  #trainerScreen .bottom-actions > #playBtn,
+  #trainerScreen .bottom-actions > #repeatBtn{
+    min-height:50px!important;
+  }
+
+  #trainerScreen .trainer-main > .exercise-feedback{
+    min-height:64px!important;
+    padding:8px 12px!important;
+  }
+
+  #trainerScreen .trainer-head{
+    margin:7px 2px 4px!important;
+    min-height:30px!important;
+  }
+
+  /* Reserve space so the floating back button never covers the last settings. */
+  #trainerScreen #settingsPanel,
+  #trainerScreen #settingsPanel[hidden]{
+    padding-bottom:72px!important;
+  }
+}
+
+@media(orientation:landscape) and (max-height:430px){
+  main:has(#trainerScreen.active) #homeBtn:not([hidden]){
+    min-width:82px!important;
+    min-height:38px!important;
+    padding:6px 11px!important;
+    font-size:11px!important;
+  }
+
+  #trainerScreen .trainer-main .keyboard{
+    height:clamp(220px,59svh,310px)!important;
+  }
+
+  #trainerScreen .bottom-actions > #playBtn,
+  #trainerScreen .bottom-actions > #repeatBtn{
+    min-height:44px!important;
+  }
+
+  #trainerScreen .trainer-main > .exercise-feedback{
+    min-height:58px!important;
+  }
+}
